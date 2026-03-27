@@ -4,81 +4,108 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>REF-BAU App</title>
+    <!-- 1. WERKZEUGE LADEN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net"></script>
     <script src="https://cdnjs.cloudflare.com"></script>
 </head>
-<body class="bg-gray-100 p-4 pb-10">
+<body class="bg-gray-100 p-4 pb-10 font-sans">
 
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-2xl p-6 border-t-4 border-blue-900">
         <!-- LOGO -->
         <div class="flex items-center justify-between mb-6 border-b pb-4">
-            <div class="text-3xl font-extrabold text-blue-900 italic italic">REF-BAU</div>
-            <div class="text-[10px] text-gray-400 text-right uppercase font-bold leading-tight">Digitale<br>Bauleitung</div>
+            <div class="text-3xl font-black text-blue-900 italic tracking-tighter">REF-BAU</div>
+            <div class="text-[10px] text-gray-500 text-right uppercase font-bold leading-tight">Digitale<br>Bauleitung</div>
         </div>
 
-        <!-- LOGIN -->
+        <!-- 2. LOGIN BEREICH -->
         <div id="loginSection" class="space-y-4">
-            <h2 class="text-lg font-bold text-gray-700 text-center uppercase">Mitarbeiter Login</h2>
-            <input type="email" id="loginEmail" placeholder="E-Mail" class="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-900">
-            <input type="password" id="loginPassword" placeholder="Passwort" class="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-900">
-            <button onclick="handleLogin()" id="loginBtn" class="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-md hover:bg-blue-800 transition">Anmelden</button>
-            <p id="initMsg" class="text-center text-[10px] text-gray-400">Initialisiere System...</p>
+            <h2 class="text-center font-bold text-gray-700 uppercase tracking-widest">Mitarbeiter Login</h2>
+            <input type="email" id="loginEmail" placeholder="E-Mail" class="w-full border-2 p-3 rounded-lg outline-none focus:border-blue-900 transition shadow-sm">
+            <input type="password" id="loginPassword" placeholder="Passwort" class="w-full border-2 p-3 rounded-lg outline-none focus:border-blue-900 transition shadow-sm">
+            <button onclick="handleLogin()" id="loginBtn" class="w-full bg-blue-900 text-white py-4 rounded-xl font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition transform">Anmelden</button>
+            <p id="initMsg" class="text-center text-[10px] text-gray-400 font-medium italic">Warte auf Cloud-Verbindung...</p>
         </div>
 
-        <!-- HAUPT APP -->
-        <div id="appSection" class="hidden space-y-4">
+        <!-- 3. HAUPT APP (Zuerst versteckt) -->
+        <div id="appSection" class="hidden space-y-4 animate-fade-in">
             <div class="grid grid-cols-2 gap-3">
-                <input type="text" id="project" class="border p-2 rounded shadow-sm" placeholder="Baustelle">
-                <input type="date" id="date" class="border p-2 rounded shadow-sm">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <input type="number" id="hours" step="0.5" class="border p-2 rounded shadow-sm" placeholder="Stunden">
-                <select id="weather" class="border p-2 rounded shadow-sm">
-                    <option>Sonnig</option><option>Bewölkt</option><option>Regen</option><option>Frost</option>
-                </select>
-            </div>
-            <textarea id="work" rows="4" class="w-full border p-2 rounded text-sm shadow-sm" placeholder="Tätigkeiten..."></textarea>
-            
-            <div class="relative bg-gray-50 border-2 border-dashed border-gray-300 rounded">
-                <canvas id="sig-canvas" width="350" height="120" class="w-full touch-none cursor-crosshair"></canvas>
-                <button onclick="clearSig()" class="absolute top-1 right-1 text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded">Löschen</button>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Projekt</label>
+                    <input type="text" id="project" class="w-full border p-2 rounded shadow-inner" placeholder="Baustelle">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Datum</label>
+                    <input type="date" id="date" class="w-full border p-2 rounded shadow-inner">
+                </div>
             </div>
 
-            <button onclick="saveAndSend()" id="sendBtn" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-green-700 transition uppercase tracking-widest">
-                An Zentrale senden
-            </button>
-            <p id="status" class="text-center text-xs mt-2 font-bold text-blue-700"></p>
-            <button onclick="handleLogout()" class="w-full text-xs text-gray-400 mt-8 underline text-center">Abmelden</button>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Stunden (Team)</label>
+                    <input type="number" id="hours" step="0.5" class="w-full border p-2 rounded shadow-inner" placeholder="z.B. 8.5">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Wetter</label>
+                    <select id="weather" class="w-full border p-2 rounded shadow-inner">
+                        <option>Sonnig</option><option>Bewölkt</option><option>Regen</option><option>Frost</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Tätigkeiten</label>
+                <textarea id="work" rows="4" class="w-full border p-2 rounded text-sm shadow-inner" placeholder="Was wurde heute erledigt?"></textarea>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Unterschrift Bauleiter</label>
+                <div class="relative bg-gray-50 border-2 border-dashed border-gray-300 rounded overflow-hidden">
+                    <canvas id="sig-canvas" width="350" height="120" class="w-full touch-none cursor-crosshair"></canvas>
+                    <button onclick="clearSig()" class="absolute top-1 right-1 text-[10px] bg-red-500 text-white px-2 py-1 rounded shadow">Löschen</button>
+                </div>
+            </div>
+
+            <div class="pt-4">
+                <button onclick="saveAndSend()" id="sendBtn" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-xl hover:bg-green-700 transition uppercase tracking-widest flex items-center justify-center gap-2">
+                    <span>Bericht senden</span> 🏗️
+                </button>
+                <p id="status" class="text-center text-xs mt-2 font-bold text-blue-700 h-4"></p>
+            </div>
+            
+            <button onclick="handleLogout()" class="w-full text-xs text-gray-400 mt-6 underline text-center">Abmelden</button>
         </div>
     </div>
 
+    <!-- 4. DAS GEHIRN (JAVASCRIPT) -->
     <script>
-        // === KONFIGURATION (HIER EINTRAGEN) ===
+        // === ZUGANGSDATEN (HIER EINTRAGEN!) ===
         const URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
         const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
         
-        let sb = null; // Zuerst leer lassen
+        let sb = null;
 
-        // Diese Funktion baut die Verbindung GANZ SICHER auf
-        function getClient() {
-            if (!sb) {
-                sb = supabase.createClient(URL, KEY);
-            }
-            return sb;
-        }
-
-        window.onload = async () => {
-            console.log("REF-BAU startet...");
+        // Startet alles, sobald die Seite geladen ist
+        window.onload = async function() {
             try {
-                getClient(); // Verbindung initialisieren
+                // Prüfen ob Supabase geladen wurde
+                if (typeof supabase === 'undefined') {
+                    document.getElementById('initMsg').innerText = "Fehler: Cloud-Modul nicht geladen!";
+                    return;
+                }
+                
+                // Verbindung herstellen
+                sb = supabase.createClient(URL, KEY);
                 document.getElementById('initMsg').innerText = "System bereit ✅";
+                
                 initSignature();
                 await checkSession();
-                if(document.getElementById('date')) document.getElementById('date').valueAsDate = new Date();
-            } catch (e) {
-                document.getElementById('initMsg').innerText = "Verbindungsfehler!";
-                console.error(e);
+                
+                if(document.getElementById('date')) {
+                    document.getElementById('date').valueAsDate = new Date();
+                }
+            } catch (err) {
+                console.error("Start-Fehler:", err);
             }
         };
 
@@ -86,20 +113,24 @@
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             const btn = document.getElementById('loginBtn');
+
+            if (!email || !password) { alert("Bitte Zugangsdaten eingeben!"); return; }
+            if (!sb) { alert("System lädt noch... bitte warten."); return; }
+
             btn.innerText = "Prüfe..."; btn.disabled = true;
 
             try {
-                const { error } = await getClient().auth.signInWithPassword({ email, password });
+                const { data, error } = await sb.auth.signInWithPassword({ email, password });
                 if (error) throw error;
                 await checkSession();
             } catch (err) {
-                alert("Login-Fehler: " + err.message);
+                alert("Login fehlgeschlagen: " + err.message);
                 btn.innerText = "Anmelden"; btn.disabled = false;
             }
         }
 
         async function checkSession() {
-            const { data: { session } } = await getClient().auth.getSession();
+            const { data: { session } } = await sb.auth.getSession();
             if (session) {
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('appSection').classList.remove('hidden');
@@ -107,11 +138,11 @@
         }
 
         async function handleLogout() {
-            await getClient().auth.signOut();
+            await sb.auth.signOut();
             location.reload();
         }
 
-        // UNTERSCHRIFT
+        // UNTERSCHRIFT LOGIK
         let canvas, ctx, drawing = false;
         function initSignature() {
             canvas = document.getElementById('sig-canvas');
@@ -133,12 +164,16 @@
         }
         function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
 
+        // DATEN SENDEN
         async function saveAndSend() {
             const btn = document.getElementById('sendBtn');
             const status = document.getElementById('status');
             const project = document.getElementById('project').value;
+            
             if(!project) { alert("Projektname fehlt!"); return; }
-            btn.disabled = true; status.innerText = "Sende...";
+            
+            btn.disabled = true;
+            status.innerText = "Speichere in Cloud...";
 
             const reportData = {
                 projekt: project,
@@ -149,28 +184,37 @@
             };
 
             try {
-                const { error } = await getClient().from('berichte').insert([reportData]);
+                const { error } = await sb.from('berichte').insert([reportData]);
                 if (error) throw error;
-                status.innerText = "Erfolgreich!";
+                
+                status.innerText = "Cloud OK! Erzeuge PDF...";
                 generatePDF(reportData);
-                alert("Bericht gespeichert!");
+                alert("Bericht erfolgreich gesendet!");
             } catch (err) {
-                alert("Fehler: " + err.message);
-            } finally { btn.disabled = false; status.innerText = ""; }
+                alert("Cloud-Fehler: " + err.message);
+            } finally {
+                btn.disabled = false;
+                status.innerText = "";
+            }
         }
 
         function generatePDF(data) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("REF-BAU TAGESBERICHT", 20, 20);
-            doc.text(`Projekt: ${data.projekt}`, 20, 40);
-            doc.text(`Stunden: ${data.stunden}`, 20, 50);
+            doc.setFontSize(22); doc.setTextColor(0, 50, 100);
+            doc.text("REF-BAU TAGESBERICHT", 20, 25);
+            doc.setFontSize(11); doc.setTextColor(0,0,0);
+            doc.text(`Projekt: ${data.projekt}`, 20, 45);
+            doc.text(`Datum: ${data.datum}`, 20, 55);
+            doc.text(`Stunden: ${data.stunden}`, 20, 65);
+            doc.line(20, 80, 190, 80);
             const sig = canvas.toDataURL("image/png");
-            doc.addImage(sig, 'PNG', 20, 100, 60, 20);
-            doc.save(`Bericht_${data.projekt}.pdf`);
+            doc.addImage(sig, 'PNG', 20, 150, 60, 20);
+            doc.save(`REF-BAU_${data.projekt}.pdf`);
         }
     </script>
 </body>
 </html>
+
 
 
