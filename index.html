@@ -153,7 +153,9 @@
             doc.addImage(canvas.toDataURL("image/png"), 'PNG', 20, 100, 100, 40);
             doc.save(`REF_Bau_${data.projekt}_${data.datum}.pdf`);
         }
-
+// ACHTUNG: Hier müssen DEINE echten Daten stehen!
+const SUPABASE_URL = 'https://hvvuzldppehewkotppdz.supabase.co'; // Deine kopierte URL
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Dein langer anon Key
         window.onload = checkUser;
     </script>
 </body>
