@@ -188,5 +188,224 @@
 </html>
 
 
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REF-BAU App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase Bibliothek -->
+    <script src="https://cdn.jsdelivr.net"></script>
+    <!-- PDF Bibliothek -->
+    <script src="https://cdnjs.cloudflare.com"></script>
+</head>
+<body class="bg-gray-100 p-4 pb-10">
+
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6">
+        <!-- FIRMEN-HEADER -->
+        <div class="flex items-center justify-between mb-6 border-b pb-4">
+            <div class="text-3xl font-extrabold text-blue-900 italic tracking-tighter">REF-BAU</div>
+            <div class="text-[10px] text-gray-400 text-right uppercase font-bold leading-tight">Digitale<br>Bauleitung</div>
+        </div>
+
+        <!-- 1. LOGIN BEREICH -->
+        <div id="loginSection" class="space-y-4">
+            <h2 class="text-lg font-bold text-gray-700 text-center">Mitarbeiter Login</h2>
+            <input type="email" id="loginEmail" placeholder="E-Mail (@ref-bau.de)" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-900 outline-none">
+            <input type="password" id="loginPassword" placeholder="Passwort" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-900 outline-none">
+            <button onclick="handleLogin()" id="loginBtn" class="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-md hover:bg-blue-800 transition">Anmelden</button>
+        </div>
+
+        <!-- 2. HAUPT APP (Zuerst versteckt) -->
+        <div id="appSection" class="hidden space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Projekt</label>
+                    <input type="text" id="project" class="w-full border p-2 rounded shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Datum</label>
+                    <input type="date" id="date" class="w-full border p-2 rounded shadow-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Stunden</label>
+                    <input type="number" id="hours" step="0.5" class="w-full border p-2 rounded shadow-sm" placeholder="z.B. 8.5">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Wetter</label>
+                    <select id="weather" class="w-full border p-2 rounded shadow-sm">
+                        <option>Sonnig</option><option>Bewölkt</option><option>Regen</option><option>Frost</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tätigkeiten</label>
+                <textarea id="work" rows="4" class="w-full border p-2 rounded text-sm shadow-sm" placeholder="Was wurde heute erledigt?"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Unterschrift</label>
+                <div class="relative bg-gray-50 border-2 border-dashed border-gray-300 rounded">
+                    <canvas id="sig-canvas" width="350" height="120" class="w-full touch-none cursor-crosshair"></canvas>
+                    <button onclick="clearSig()" class="absolute top-1 right-1 text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded">Löschen</button>
+                </div>
+            </div>
+
+            <button onclick="saveAndSend()" id="sendBtn" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-green-700 transition uppercase tracking-widest">
+                Bericht an Zentrale senden
+            </button>
+            <p id="status" class="text-center text-xs mt-2 font-bold text-blue-700 h-4"></p>
+            
+            <button onclick="handleLogout()" class="w-full text-xs text-gray-400 mt-8 underline text-center">Abmelden</button>
+        </div>
+    </div>
+
+    <script>
+        // === 1. KONFIGURATION (HIER DEINE DATEN EINTRAGEN) ===
+        const SUPABASE_URL = 'DEINE_URL'; 
+        const SUPABASE_KEY = 'DEIN_KEY';
+        
+        let sb; // Verbindungsvariable global definieren
+
+        // === 2. INITIALISIERUNG BEIM LADEN ===
+        window.onload = async function() {
+            try {
+                // Client erstellen
+                sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log("REF-BAU Cloud verbunden.");
+
+                // Unterschrift-Logik aktivieren
+                initSignature();
+
+                // Bestehende Session prüfen
+                await checkSession();
+                
+                // Datum heute setzen
+                if(document.getElementById('date')) {
+                    document.getElementById('date').valueAsDate = new Date();
+                }
+            } catch (e) {
+                console.error("Fehler beim Start:", e);
+            }
+        };
+
+        // LOGIN FUNKTION
+        async function handleLogin() {
+            if (!sb) { alert("Verbindung wird noch aufgebaut..."); return; }
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+
+            btn.innerText = "Prüfe...";
+            btn.disabled = true;
+
+            try {
+                const { data, error } = await sb.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                await checkSession();
+            } catch (err) {
+                alert("Login-Fehler: " + err.message);
+                btn.innerText = "Anmelden";
+                btn.disabled = false;
+            }
+        }
+
+        async function checkSession() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('appSection').classList.remove('hidden');
+            }
+        }
+
+        async function handleLogout() {
+            await sb.auth.signOut();
+            location.reload();
+        }
+
+        // UNTERSCHRIFT
+        let canvas, ctx, drawing = false;
+        function initSignature() {
+            canvas = document.getElementById('sig-canvas');
+            ctx = canvas.getContext('2d');
+            canvas.addEventListener('mousedown', () => drawing = true);
+            canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('touchstart', (e) => { drawing = true; draw(e); }, {passive: false});
+            canvas.addEventListener('touchend', () => { drawing = false; ctx.beginPath(); });
+            canvas.addEventListener('touchmove', (e) => draw(e), {passive: false});
+        }
+        function draw(e) {
+            if (!drawing) return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+            const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+            ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineTo(x, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y);
+        }
+        function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+        // DATEN SENDEN
+        async function saveAndSend() {
+            const btn = document.getElementById('sendBtn');
+            const status = document.getElementById('status');
+            const project = document.getElementById('project').value;
+            
+            if(!project) { alert("Projektname fehlt!"); return; }
+            
+            btn.disabled = true;
+            status.innerText = "Speichere in Cloud...";
+
+            const reportData = {
+                projekt: project,
+                datum: document.getElementById('date').value,
+                stunden: parseFloat(document.getElementById('hours').value) || 0,
+                arbeit_text: document.getElementById('work').value,
+                wetter: document.getElementById('weather').value
+            };
+
+            try {
+                const { error } = await sb.from('berichte').insert([reportData]);
+                if (error) throw error;
+                
+                status.innerText = "Cloud OK! Erzeuge PDF...";
+                generatePDF(reportData);
+                alert("Bericht erfolgreich an Zentrale gesendet!");
+            } catch (err) {
+                alert("Fehler: " + err.message);
+            } finally {
+                btn.disabled = false;
+                status.innerText = "";
+            }
+        }
+
+        function generatePDF(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(22); doc.setTextColor(0, 50, 100);
+            doc.text("REF-BAU TAGESBERICHT", 20, 25);
+            doc.setFontSize(11); doc.setTextColor(0,0,0);
+            doc.text(`Projekt: ${data.projekt}`, 20, 45);
+            doc.text(`Datum: ${data.datum}`, 20, 55);
+            doc.text(`Team-Stunden: ${data.stunden}`, 20, 65);
+            doc.text(`Wetter: ${data.wetter}`, 20, 75);
+            doc.line(20, 80, 190, 80);
+            doc.text("Tätigkeiten:", 20, 90);
+            const splitText = doc.splitTextToSize(data.arbeit_text, 170);
+            doc.text(splitText, 20, 100);
+            const sigData = canvas.toDataURL("image/png");
+            doc.text("Unterschrift Bauleitung:", 20, 160);
+            doc.addImage(sigData, 'PNG', 20, 165, 60, 20);
+            doc.save(`REF-BAU_${data.projekt}.pdf`);
+        }
+    </script>
+</body>
+</html>
 
 
