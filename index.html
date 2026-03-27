@@ -76,141 +76,136 @@
         </div>
     </div>
 
-    <script>
-        // === 1. SOFORTIGE INITIALISIERUNG ===
-        const SUPABASE_URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
+
+     <script>
+    // 1. Zuerst die Zugangsdaten festlegen
+    const SUPABASE_URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
+
+    // 2. Die Verbindung SOFORT erstellen (Wichtig: Das muss ganz oben stehen!)
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // 3. Variablen für die Seite
+    let canvas, ctx, drawing = false;
+
+    // 4. Alles andere erst starten, wenn die Seite fertig geladen ist
+    window.onload = async function() {
+        console.log("REF-BAU System wird initialisiert...");
         
-        // Verbindung herstellen (sb steht für Supabase-Client)
-        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Unterschrift-Feld vorbereiten
+        initSignature();
+        
+        // Datum auf heute setzen
+        const dateInput = document.getElementById('date');
+        if(dateInput) dateInput.valueAsDate = new Date();
 
-        // UI-Elemente
-        const loginSection = document.getElementById('loginSection');
-        const appSection = document.getElementById('appSection');
-        const initStatus = document.getElementById('initStatus');
+        // Prüfen, ob der Nutzer bereits eingeloggt ist
+        await checkSession();
+    };
 
-        // Automatischer Check beim Laden
-        window.onload = async () => {
-            initStatus.innerText = "System bereit ✅";
-            initSignature();
+    // --- LOGIN FUNKTION ---
+    async function handleLogin() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const btn = document.getElementById('loginBtn');
+
+        btn.innerText = "Prüfe...";
+        btn.disabled = true;
+
+        try {
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) throw error;
             await checkSession();
-            if(document.getElementById('date')) document.getElementById('date').valueAsDate = new Date();
+        } catch (err) {
+            alert("Login-Fehler: " + err.message);
+            btn.innerText = "Anmelden";
+            btn.disabled = false;
+        }
+    }
+
+    async function checkSession() {
+        try {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('appSection').classList.remove('hidden');
+            }
+        } catch (e) {
+            console.log("Keine aktive Sitzung gefunden.");
+        }
+    }
+
+    async function handleLogout() {
+        await sb.auth.signOut();
+        location.reload();
+    }
+
+    // --- WEITERE FUNKTIONEN ---
+    function initSignature() {
+        canvas = document.getElementById('sig-canvas');
+        if (!canvas) return;
+        ctx = canvas.getContext('2d');
+        canvas.addEventListener('mousedown', () => drawing = true);
+        canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', (e) => { drawing = true; draw(e); }, {passive: false});
+        canvas.addEventListener('touchend', () => { drawing = false; ctx.beginPath(); });
+        canvas.addEventListener('touchmove', (e) => draw(e), {passive: false});
+    }
+
+    function draw(e) {
+        if (!drawing) return;
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX || (e.touches && e.touches.clientX)) - rect.left;
+        const y = (e.clientY || (e.touches && e.touches.clientY)) - rect.top;
+        ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineTo(x, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y);
+    }
+
+    function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+    async function saveAndSend() {
+        const btn = document.getElementById('sendBtn');
+        const status = document.getElementById('status');
+        const project = document.getElementById('project').value;
+        if(!project) { alert("Projektname fehlt!"); return; }
+        
+        btn.disabled = true;
+        status.innerText = "Speichere...";
+
+        const reportData = {
+            projekt: project,
+            datum: document.getElementById('date').value,
+            stunden: parseFloat(document.getElementById('hours').value) || 0,
+            arbeit_text: document.getElementById('work').value,
+            wetter: document.getElementById('weather').value
         };
 
-        // LOGIN FUNKTION
-        async function handleLogin() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const btn = document.getElementById('loginBtn');
-
-            if (!email || !password) { alert("Bitte E-Mail und Passwort eingeben!"); return; }
-
-            btn.innerText = "Prüfe Zugangsdaten...";
-            btn.disabled = true;
-
-            try {
-                const { data, error } = await sb.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                await checkSession();
-            } catch (err) {
-                alert("Login-Fehler: " + err.message);
-                btn.innerText = "Anmelden";
-                btn.disabled = false;
-            }
+        try {
+            const { error } = await sb.from('berichte').insert([reportData]);
+            if (error) throw error;
+            status.innerText = "Cloud OK! Erzeuge PDF...";
+            generatePDF(reportData);
+            alert("Bericht erfolgreich gesendet!");
+        } catch (err) {
+            alert("Fehler: " + err.message);
+        } finally {
+            btn.disabled = false;
+            status.innerText = "";
         }
+    }
 
-        async function checkSession() {
-            try {
-                const { data: { session } } = await sb.auth.getSession();
-                if (session) {
-                    loginSection.classList.add('hidden');
-                    appSection.classList.remove('hidden');
-                }
-            } catch (e) { console.error("Session-Fehler", e); }
-        }
+    function generatePDF(data) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("REF-BAU TAGESBERICHT", 20, 25);
+        doc.text(`Projekt: ${data.projekt}`, 20, 45);
+        doc.text(`Datum: ${data.datum}`, 20, 55);
+        doc.save(`REF-BAU_${data.projekt}.pdf`);
+    }
+</script>
 
-        async function handleLogout() {
-            await sb.auth.signOut();
-            location.reload();
-        }
-
-        // UNTERSCHRIFT LOGIK
-        let canvas, ctx, drawing = false;
-        function initSignature() {
-            canvas = document.getElementById('sig-canvas');
-            ctx = canvas.getContext('2d');
-            canvas.addEventListener('mousedown', () => drawing = true);
-            canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('touchstart', (e) => { drawing = true; draw(e); }, {passive: false});
-            canvas.addEventListener('touchend', () => { drawing = false; ctx.beginPath(); });
-            canvas.addEventListener('touchmove', (e) => draw(e), {passive: false});
-        }
-        function draw(e) {
-            if (!drawing) return;
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX || (e.touches && e.touches.clientX)) - rect.left;
-            const y = (e.clientY || (e.touches && e.touches.clientY)) - rect.top;
-            ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineTo(x, y); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x, y);
-        }
-        function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
-
-        // DATEN SENDEN
-        async function saveAndSend() {
-            const btn = document.getElementById('sendBtn');
-            const status = document.getElementById('status');
-            const project = document.getElementById('project').value;
-            
-            if(!project) { alert("Bitte Projektname eingeben!"); return; }
-            
-            btn.disabled = true;
-            status.innerText = "Speichere in REF-BAU Cloud...";
-
-            const reportData = {
-                projekt: project,
-                datum: document.getElementById('date').value,
-                stunden: parseFloat(document.getElementById('hours').value) || 0,
-                arbeit_text: document.getElementById('work').value,
-                wetter: document.getElementById('weather').value
-            };
-
-            try {
-                const { error } = await sb.from('berichte').insert([reportData]);
-                if (error) throw error;
-                
-                status.innerText = "Cloud OK! Erzeuge PDF...";
-                generatePDF(reportData);
-                alert("Bericht erfolgreich gesendet!");
-            } catch (err) {
-                alert("Fehler: " + err.message);
-            } finally {
-                btn.disabled = false;
-                status.innerText = "";
-            }
-        }
-
-        function generatePDF(data) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFontSize(22); doc.setTextColor(0, 50, 100);
-            doc.text("REF-BAU TAGESBERICHT", 20, 25);
-            doc.setFontSize(11); doc.setTextColor(0,0,0);
-            doc.text(`Projekt: ${data.projekt}`, 20, 45);
-            doc.text(`Datum: ${data.datum}`, 20, 55);
-            doc.text(`Team-Stunden: ${data.stunden}`, 20, 65);
-            doc.text(`Wetter: ${data.wetter}`, 20, 75);
-            doc.line(20, 80, 190, 80);
-            doc.text("Tätigkeiten:", 20, 90);
-            const splitText = doc.splitTextToSize(data.arbeit_text, 170);
-            doc.text(splitText, 20, 100);
-            const sigData = canvas.toDataURL("image/png");
-            doc.text("Unterschrift Bauleitung:", 20, 160);
-            doc.addImage(sigData, 'PNG', 20, 165, 60, 20);
-            doc.save(`REF-BAU_${data.projekt}.pdf`);
-        }
-    </script>
 </body>
 </html>
 
