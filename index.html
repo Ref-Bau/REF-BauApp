@@ -116,6 +116,21 @@
                 checkSession();
             }
         }
+async function handleLogin() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        checkSession(); // Erfolg
+    } catch (err) {
+        alert("Fehler: " + err.message); // Zeigt dir jetzt genau an, was fehlt
+        document.getElementById('loginBtn').innerText = "Anmelden";
+        document.getElementById('loginBtn').disabled = false;
+    }
+}
+
 
         async function handleLogout() {
             await supabase.auth.signOut();
