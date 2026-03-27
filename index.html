@@ -1,1 +1,219 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REF-BAU App</title>
+    <!-- Tailwind für das Design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase für die Datenbank -->
+    <script src="https://cdn.jsdelivr.net"></script>
+    <!-- jsPDF für den PDF-Export -->
+    <script src="https://cdnjs.cloudflare.com"></script>
+</head>
+<body class="bg-gray-100 p-4 pb-10">
+
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6">
+        <!-- FIRMEN-HEADER -->
+        <div class="flex items-center justify-between mb-6 border-b pb-4">
+            <div class="text-3xl font-extrabold text-blue-900 italic tracking-tighter">REF-BAU</div>
+            <div class="text-[10px] text-gray-400 text-right uppercase font-bold leading-tight">Digitale<br>Bauleitung</div>
+        </div>
+
+        <!-- 1. LOGIN BEREICH (Wird nach Login ausgeblendet) -->
+        <div id="loginSection" class="space-y-4">
+            <h2 class="text-lg font-bold text-gray-700 text-center">Mitarbeiter Login</h2>
+            <div class="space-y-2">
+                <input type="email" id="loginEmail" placeholder="E-Mail (@ref-bau.de)" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-900 outline-none">
+                <input type="password" id="loginPassword" placeholder="Passwort" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-900 outline-none">
+            </div>
+            <button onclick="handleLogin()" id="loginBtn" class="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-md hover:bg-blue-800 transition">Anmelden</button>
+            <p id="loginError" class="text-red-500 text-xs text-center hidden"></p>
+        </div>
+
+        <!-- 2. HAUPT APP (Wird nach Login eingeblendet) -->
+        <div id="appSection" class="hidden space-y-4">
+            
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Projekt / Baustelle</label>
+                    <input type="text" id="project" class="w-full border p-2 rounded" placeholder="z.B. Berlin West">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Datum</label>
+                    <input type="date" id="date" class="w-full border p-2 rounded">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Stunden (Team)</label>
+                    <input type="number" id="hours" step="0.5" class="w-full border p-2 rounded" placeholder="z.B. 8.5">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Wetter</label>
+                    <select id="weather" class="w-full border p-2 rounded">
+                        <option>Sonnig</option>
+                        <option>Bewölkt</option>
+                        <option>Regen</option>
+                        <option>Frost / Schnee</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Ausgeführte Arbeiten</label>
+                <textarea id="work" rows="4" class="w-full border p-2 rounded text-sm" placeholder="Kurze Beschreibung der Tätigkeiten..."></textarea>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Unterschrift Bauleiter</label>
+                <div class="relative">
+                    <canvas id="sig-canvas" width="350" height="120" class="border-2 border-dashed border-gray-300 w-full bg-gray-50 rounded touch-none cursor-crosshair"></canvas>
+                    <button onclick="clearSig()" class="absolute top-1 right-1 text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded">Löschen</button>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t">
+                <button onclick="saveAndSend()" id="sendBtn" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-green-700 transition uppercase tracking-wider">
+                    Bericht an Zentrale senden
+                </button>
+                <p id="status" class="text-center text-xs mt-2 font-bold text-blue-700"></p>
+            </div>
+            
+            <button onclick="handleLogout()" class="w-full text-xs text-gray-400 mt-10 underline">Abmelden</button>
+        </div>
+    </div>
+
+    <script>
+        // === HIER DEINE SUPABASE DATEN EINTRAGEN ===
+        const SUPABASE_URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const loginSection = document.getElementById('loginSection');
+        const appSection = document.getElementById('appSection');
+        const status = document.getElementById('status');
+
+        // LOGIN FUNKTION
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+            const errorMsg = document.getElementById('loginError');
+
+            btn.disabled = true;
+            btn.innerText = "Prüfe...";
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                errorMsg.innerText = "Fehler: " + error.message;
+                errorMsg.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = "Anmelden";
+            } else {
+                checkSession();
+            }
+        }
+
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            location.reload();
+        }
+
+        async function checkSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                loginSection.classList.add('hidden');
+                appSection.classList.remove('hidden');
+                document.getElementById('date').valueAsDate = new Date();
+            }
+        }
+
+        // UNTERSCHRIFT LOGIK
+        const canvas = document.getElementById('sig-canvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        canvas.addEventListener('mousedown', start); canvas.addEventListener('touchstart', start);
+        canvas.addEventListener('mouseup', stop); canvas.addEventListener('touchend', stop);
+        canvas.addEventListener('mousemove', draw); canvas.addEventListener('touchmove', draw);
+
+        function start(e) { drawing = true; draw(e); }
+        function stop() { drawing = false; ctx.beginPath(); }
+        function draw(e) {
+            if (!drawing) return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+            const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+            ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineTo(x, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y);
+        }
+        function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+        // DATEN SENDEN & PDF ERSTELLEN
+        async function saveAndSend() {
+            const btn = document.getElementById('sendBtn');
+            const project = document.getElementById('project').value;
+            if(!project) { alert("Bitte Projektnamen eingeben!"); return; }
+
+            btn.disabled = true;
+            status.innerText = "Sende Daten an REF-BAU Zentrale...";
+
+            const reportData = {
+                projekt: project,
+                datum: document.getElementById('date').value,
+                stunden: parseFloat(document.getElementById('hours').value) || 0,
+                arbeit_text: document.getElementById('work').value,
+                wetter: document.getElementById('weather').value
+            };
+
+            const { error } = await supabase.from('berichte').insert([reportData]);
+
+            if (error) {
+                alert("Cloud-Fehler: " + error.message);
+                btn.disabled = false;
+            } else {
+                status.innerText = "Gespeichert! Erzeuge PDF...";
+                generatePDF(reportData);
+                status.innerText = "Erfolgreich erledigt!";
+                setTimeout(() => { status.innerText = ""; btn.disabled = false; }, 3000);
+            }
+        }
+
+        function generatePDF(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(20); doc.setTextColor(0, 51, 102);
+            doc.text("REF-BAU TAGESBERICHT", 20, 20);
+            
+            doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+            doc.text(`Projekt: ${data.projekt}`, 20, 40);
+            doc.text(`Datum: ${data.datum}`, 20, 50);
+            doc.text(`Wetter: ${data.wetter}`, 20, 60);
+            doc.text(`Gesamtstunden: ${data.stunden} Std.`, 20, 70);
+            
+            doc.line(20, 75, 190, 75);
+            doc.text("Tätigkeiten:", 20, 85);
+            const splitText = doc.splitTextToSize(data.arbeit_text, 170);
+            doc.text(splitText, 20, 95);
+
+            const sigImg = canvas.toDataURL("image/png");
+            doc.text("Unterschrift Bauleitung:", 20, 150);
+            doc.addImage(sigImg, 'PNG', 20, 155, 70, 25);
+
+            doc.save(`REF_BAU_Bericht_${data.projekt}_${data.datum}.pdf`);
+        }
+
+        window.onload = checkSession;
+    </script>
+</body>
+</html>
+
+
+
+
 
