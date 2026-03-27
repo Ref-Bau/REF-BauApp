@@ -2,102 +2,54 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>REF-BAU App</title>
-    <!-- EXTREM WICHTIG: Die Bibliotheken MÜSSEN hier stehen -->
-    <script src="https://unpkg.com"></script>
+    <!-- Wir nutzen einen anderen, oft schnelleren Server -->
+    <script src="https://cdn.jsdelivr.net"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com"></script>
 </head>
-<body class="bg-gray-100 p-4">
-
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-900 text-center">
-        <div class="text-3xl font-black text-blue-900 italic mb-6 border-b pb-4">REF-BAU</div>
-
-        <!-- STATUS ANZEIGE -->
-        <div id="statusBox" class="mb-4 p-3 rounded-lg bg-yellow-100 text-yellow-800 font-bold text-xs uppercase tracking-widest">
-            Prüfe System...
-        </div>
-
-        <!-- LOGIN -->
-        <div id="loginSection" class="hidden space-y-4">
-            <input type="email" id="loginEmail" placeholder="E-Mail" class="w-full border-2 p-3 rounded-lg outline-none focus:border-blue-900">
-            <input type="password" id="loginPassword" placeholder="Passwort" class="w-full border-2 p-3 rounded-lg outline-none focus:border-blue-900">
-            <button onclick="handleLogin()" id="loginBtn" class="w-full bg-blue-900 text-white py-4 rounded-xl font-bold">ANMELDEN</button>
-        </div>
-
-        <!-- APP -->
-        <div id="appSection" class="hidden space-y-4">
-            <div class="bg-green-100 text-green-800 p-2 rounded text-xs font-bold uppercase">Mitarbeiter Bereich</div>
-            <input type="text" id="project" class="w-full border p-2 rounded" placeholder="Projekt Name">
-            <button onclick="saveAndSend()" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold">BERICHT SENDEN</button>
-            <button onclick="location.reload()" class="w-full text-xs text-gray-400 mt-4 underline">Abmelden</button>
+<body class="bg-gray-100 p-4 text-center">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-900">
+        <div class="text-3xl font-black text-blue-900 italic mb-6">REF-BAU</div>
+        <div id="status" class="p-3 bg-red-100 text-red-700 font-bold rounded mb-4 uppercase text-[10px]">Verbindung wird gesucht...</div>
+        
+        <div id="loginForm" class="hidden space-y-4">
+            <input type="email" id="email" placeholder="E-Mail" class="w-full border p-3 rounded">
+            <input type="password" id="password" placeholder="Passwort" class="w-full border p-3 rounded">
+            <button onclick="doLogin()" class="w-full bg-blue-900 text-white py-3 rounded font-bold uppercase">Anmelden</button>
         </div>
     </div>
 
     <script>
-        // === DEINE DATEN (HIER EINTRAGEN!) ===
         const URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
         const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
-        
-        let sb = null;
+        let sb;
 
-        // Diese Funktion wird alle 1 Sekunde prüfen, ob die Bibliothek da ist
-        let checkInterval = setInterval(() => {
-            const statusBox = document.getElementById('statusBox');
-            
+        // Wir warten 3 Sekunden, bevor wir aufgeben
+        setTimeout(() => {
+            const status = document.getElementById('status');
             if (typeof supabase !== 'undefined') {
-                clearInterval(checkInterval);
-                try {
-                    sb = supabase.createClient(URL, KEY);
-                    statusBox.innerText = "System bereit ✅";
-                    statusBox.className = "mb-4 p-3 rounded-lg bg-green-100 text-green-800 font-bold text-xs uppercase tracking-widest";
-                    document.getElementById('loginSection').classList.remove('hidden');
-                    checkSession();
-                } catch (e) {
-                    statusBox.innerText = "Konfigurations-Fehler!";
-                    console.error(e);
-                }
+                sb = supabase.createClient(URL, KEY);
+                status.innerText = "System bereit ✅";
+                status.className = "p-3 bg-green-100 text-green-700 font-bold rounded mb-4 uppercase text-[10px]";
+                document.getElementById('loginForm').classList.remove('hidden');
             } else {
-                statusBox.innerText = "Warte auf Cloud-Module... (Bibliothek fehlt)";
+                status.innerText = "FEHLER: BIBLIOTHEK BLOCKIERT!";
+                alert("Dein Netzwerk blockiert die Verbindung. Schalte das WLAN am Handy aus und nutze mobile Daten!");
             }
-        }, 1000);
+        }, 3000);
 
-        async function handleLogin() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const btn = document.getElementById('loginBtn');
-            btn.innerText = "PRÜFE..."; btn.disabled = true;
-
-            try {
-                const { error } = await sb.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                await checkSession();
-            } catch (err) {
-                alert("Fehler: " + err.message);
-                btn.innerText = "ANMELDEN"; btn.disabled = false;
-            }
-        }
-
-        async function checkSession() {
-            const { data: { session } } = await sb.auth.getSession();
-            if (session) {
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('statusBox').classList.add('hidden');
-                document.getElementById('appSection').classList.remove('hidden');
-            }
-        }
-
-        async function saveAndSend() {
-            const project = document.getElementById('project').value;
-            if(!project) { alert("Projekt fehlt!"); return; }
-            const { error } = await sb.from('berichte').insert([{ projekt: project }]);
+        async function doLogin() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('password').value;
+            const { error } = await sb.auth.signInWithPassword({email: e, password: p});
             if (error) alert(error.message);
-            else alert("Gesendet!");
+            else alert("Erfolg! Willkommen bei REF-BAU.");
         }
     </script>
 </body>
 </html>
+
 
 
 
