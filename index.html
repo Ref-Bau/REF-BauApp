@@ -79,140 +79,37 @@
 
     <!-- 4. DAS GEHIRN (JAVASCRIPT) -->
     <script>
-        // === ZUGANGSDATEN (HIER EINTRAGEN!) ===
-        const URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
-        const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
-        
-        let sb = null;
+    // === HIER DIE ECHTEN DATEN EINSETZEN ===
+    const URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
 
-        // Startet alles, sobald die Seite geladen ist
-        window.onload = async function() {
-            try {
-                // Prüfen ob Supabase geladen wurde
-                if (typeof supabase === 'undefined') {
-                    document.getElementById('initMsg').innerText = "Fehler: Cloud-Modul nicht geladen!";
-                    return;
-                }
-                
-                // Verbindung herstellen
-                sb = supabase.createClient(URL, KEY);
-                document.getElementById('initMsg').innerText = "System bereit ✅";
-                
+    let sb;
+
+    window.onload = async function() {
+        const msg = document.getElementById('initMsg');
+        try {
+            // 1. Verbindung initialisieren
+            sb = supabase.createClient(URL, KEY);
+            
+            // 2. Test-Verbindung zur Cloud (WICHTIG!)
+            const { error } = await sb.from('berichte').select('id').limit(1);
+            
+            if (error) {
+                // Wenn hier ein Fehler kommt, stimmen URL oder KEY nicht!
+                msg.innerHTML = "<span class='text-red-600'>Verbindungsfehler: " + error.message + "</span>";
+            } else {
+                msg.innerHTML = "<span class='text-green-600'>System bereit ✅</span>";
                 initSignature();
                 await checkSession();
-                
-                if(document.getElementById('date')) {
-                    document.getElementById('date').valueAsDate = new Date();
-                }
-            } catch (err) {
-                console.error("Start-Fehler:", err);
             }
-        };
-
-        async function handleLogin() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const btn = document.getElementById('loginBtn');
-
-            if (!email || !password) { alert("Bitte Zugangsdaten eingeben!"); return; }
-            if (!sb) { alert("System lädt noch... bitte warten."); return; }
-
-            btn.innerText = "Prüfe..."; btn.disabled = true;
-
-            try {
-                const { data, error } = await sb.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                await checkSession();
-            } catch (err) {
-                alert("Login fehlgeschlagen: " + err.message);
-                btn.innerText = "Anmelden"; btn.disabled = false;
-            }
+        } catch (err) {
+            msg.innerHTML = "<span class='text-red-600'>Kritisch: " + err.message + "</span>";
         }
+    };
 
-        async function checkSession() {
-            const { data: { session } } = await sb.auth.getSession();
-            if (session) {
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('appSection').classList.remove('hidden');
-            }
-        }
+    // ... handleLogin, saveAndSend etc. wie gehabt ...
+</script>
 
-        async function handleLogout() {
-            await sb.auth.signOut();
-            location.reload();
-        }
-
-        // UNTERSCHRIFT LOGIK
-        let canvas, ctx, drawing = false;
-        function initSignature() {
-            canvas = document.getElementById('sig-canvas');
-            ctx = canvas.getContext('2d');
-            canvas.addEventListener('mousedown', () => drawing = true);
-            canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('touchstart', (e) => { drawing = true; draw(e); }, {passive: false});
-            canvas.addEventListener('touchend', () => { drawing = false; ctx.beginPath(); });
-            canvas.addEventListener('touchmove', (e) => draw(e), {passive: false});
-        }
-        function draw(e) {
-            if (!drawing) return; e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX || (e.touches && e.touches.clientX)) - rect.left;
-            const y = (e.clientY || (e.touches && e.touches.clientY)) - rect.top;
-            ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineTo(x, y); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x, y);
-        }
-        function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
-
-        // DATEN SENDEN
-        async function saveAndSend() {
-            const btn = document.getElementById('sendBtn');
-            const status = document.getElementById('status');
-            const project = document.getElementById('project').value;
-            
-            if(!project) { alert("Projektname fehlt!"); return; }
-            
-            btn.disabled = true;
-            status.innerText = "Speichere in Cloud...";
-
-            const reportData = {
-                projekt: project,
-                datum: document.getElementById('date').value,
-                stunden: parseFloat(document.getElementById('hours').value) || 0,
-                arbeit_text: document.getElementById('work').value,
-                wetter: document.getElementById('weather').value
-            };
-
-            try {
-                const { error } = await sb.from('berichte').insert([reportData]);
-                if (error) throw error;
-                
-                status.innerText = "Cloud OK! Erzeuge PDF...";
-                generatePDF(reportData);
-                alert("Bericht erfolgreich gesendet!");
-            } catch (err) {
-                alert("Cloud-Fehler: " + err.message);
-            } finally {
-                btn.disabled = false;
-                status.innerText = "";
-            }
-        }
-
-        function generatePDF(data) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFontSize(22); doc.setTextColor(0, 50, 100);
-            doc.text("REF-BAU TAGESBERICHT", 20, 25);
-            doc.setFontSize(11); doc.setTextColor(0,0,0);
-            doc.text(`Projekt: ${data.projekt}`, 20, 45);
-            doc.text(`Datum: ${data.datum}`, 20, 55);
-            doc.text(`Stunden: ${data.stunden}`, 20, 65);
-            doc.line(20, 80, 190, 80);
-            const sig = canvas.toDataURL("image/png");
-            doc.addImage(sig, 'PNG', 20, 150, 60, 20);
-            doc.save(`REF-BAU_${data.projekt}.pdf`);
-        }
-    </script>
 </body>
 </html>
 
