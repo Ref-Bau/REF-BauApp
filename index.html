@@ -1,63 +1,43 @@
-<script>
-/* <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>REF-BAU App</title>
 
-    <!-- 1. WICHTIG: DIE BIBLIOTHEK MUSS GANZ OBEN STEHEN -->
-    <script src="https://cdn.jsdelivr.net"></script>
+    <!-- VERSUCH 1: ERSATZ-SERVER (UNPKG) -->
+    <script src="https://unpkg.com"></script>
     
-    <!-- 2. WEITERE WERKZEUGE -->
+    <!-- VERSUCH 2: FALLBACK (JSDELIVR) -->
+    <script src="https://cdn.jsdelivr.net"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com"></script>
 </head>
 <body class="bg-gray-100 p-4">
 
     <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-900">
-        <!-- LOGO -->
         <div class="flex items-center justify-between mb-6 border-b pb-4">
             <div class="text-3xl font-black text-blue-900 italic tracking-tighter">REF-BAU</div>
         </div>
 
-        <!-- LOGIN -->
-        <div id="loginSection" class="space-y-4">
-            <h2 class="text-center font-bold text-gray-700 uppercase tracking-widest">Mitarbeiter Login</h2>
+        <div id="loginSection" class="space-y-4 text-center">
+            <h2 class="font-bold text-gray-700 uppercase tracking-widest">Mitarbeiter Login</h2>
             <input type="email" id="loginEmail" placeholder="E-Mail" class="w-full border-2 p-3 rounded-lg outline-none focus:border-blue-900">
             <input type="password" id="loginPassword" placeholder="Passwort" class="w-full border-2 p-3 rounded-lg outline-none focus:border-blue-900">
-            <button onclick="handleLogin()" id="loginBtn" class="w-full bg-blue-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-blue-800 transition">Anmelden</button>
-            <p id="initMsg" class="text-center text-[10px] text-red-500 font-bold italic uppercase tracking-wider">Lade Cloud-Module...</p>
+            <button onclick="handleLogin()" id="loginBtn" class="w-full bg-blue-900 text-white py-4 rounded-xl font-bold shadow-lg">Anmelden</button>
+            
+            <!-- HIER ZEIGT DIE APP DEN STATUS AN -->
+            <p id="initMsg" class="mt-4 text-[10px] font-bold py-2 px-4 rounded bg-gray-50 uppercase tracking-widest transition-all duration-500">Prüfe Cloud-Module...</p>
         </div>
 
-        <!-- HAUPT APP (Versteckt bis Login) -->
         <div id="appSection" class="hidden space-y-4">
-            <div class="grid grid-cols-2 gap-3">
-                <input type="text" id="project" class="border p-2 rounded" placeholder="Baustelle">
-                <input type="date" id="date" class="border p-2 rounded">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <input type="number" id="hours" step="0.5" class="border p-2 rounded" placeholder="Stunden">
-                <select id="weather" class="border p-2 rounded">
-                    <option>Sonnig</option><option>Bewölkt</option><option>Regen</option><option>Frost</option>
-                </select>
-            </div>
-            <textarea id="work" rows="4" class="w-full border p-2 rounded text-sm" placeholder="Tätigkeiten..."></textarea>
-            
-            <div class="relative bg-gray-50 border-2 border-dashed border-gray-300 rounded">
-                <canvas id="sig-canvas" width="350" height="120" class="w-full touch-none cursor-crosshair"></canvas>
-                <button onclick="clearSig()" class="absolute top-1 right-1 text-[10px] bg-red-500 text-white px-2 py-1 rounded">Löschen</button>
-            </div>
-
-            <button onclick="saveAndSend()" id="sendBtn" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-green-700 transition uppercase tracking-widest">
-                Bericht senden
-            </button>
-            <p id="status" class="text-center text-xs mt-2 font-bold text-blue-700 h-4"></p>
-            <button onclick="handleLogout()" class="w-full text-xs text-gray-400 mt-8 underline text-center">Abmelden</button>
+            <input type="text" id="project" class="w-full border p-2 rounded" placeholder="Baustelle">
+            <button onclick="saveAndSend()" id="sendBtn" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold">Bericht senden</button>
+            <button onclick="handleLogout()" class="w-full text-xs text-gray-400 mt-8 underline">Abmelden</button>
         </div>
     </div>
 
-    <!-- DAS GEHIRN (JAVASCRIPT) -->
     <script>
         // === ZUGANGSDATEN (HIER EINTRAGEN!) ===
         const URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
@@ -65,31 +45,30 @@
         
         let sb = null;
 
-        // Warten bis die Seite und die Bibliothek geladen sind
-        window.onload = function() {
+        window.onload = async function() {
             const msg = document.getElementById('initMsg');
             
-            // Prüfung 1: Ist die Bibliothek da?
+            // 1. PRÜFUNG: Ist die Bibliothek geladen?
             if (typeof supabase === 'undefined') {
-                msg.innerText = "KRITISCH: BIBLIOTHEK NICHT GEFUNDEN!";
+                msg.innerText = "❌ KRITISCH: BIBLIOTHEK NICHT GEFUNDEN!";
+                msg.style.color = "red";
+                msg.style.backgroundColor = "#fee2e2";
                 return;
             }
 
             try {
-                // Initialisierung
+                // 2. INITIALISIERUNG
                 sb = supabase.createClient(URL, KEY);
-                msg.innerText = "System bereit ✅";
-                msg.classList.remove('text-red-500');
-                msg.classList.add('text-green-600');
                 
-                initSignature();
-                checkSession();
+                // 3. ERFOLGSMELDUNG
+                msg.innerText = "✅ SYSTEM BEREIT";
+                msg.style.color = "green";
+                msg.style.backgroundColor = "#dcfce7";
                 
-                if(document.getElementById('date')) {
-                    document.getElementById('date').valueAsDate = new Date();
-                }
+                await checkSession();
             } catch (err) {
-                msg.innerText = "Fehler: " + err.message;
+                msg.innerText = "❌ FEHLER: " + err.message;
+                msg.style.color = "red";
             }
         };
 
@@ -98,13 +77,12 @@
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             const btn = document.getElementById('loginBtn');
-
             btn.innerText = "Prüfe..."; btn.disabled = true;
 
             try {
-                const { data, error } = await sb.auth.signInWithPassword({ email, password });
+                const { error } = await sb.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-                checkSession();
+                await checkSession();
             } catch (err) {
                 alert("Login-Fehler: " + err.message);
                 btn.innerText = "Anmelden"; btn.disabled = false;
@@ -124,71 +102,9 @@
             if(sb) await sb.auth.signOut();
             location.reload();
         }
-
-        // UNTERSCHRIFT
-        let canvas, ctx, drawing = false;
-        function initSignature() {
-            canvas = document.getElementById('sig-canvas');
-            if(!canvas) return;
-            ctx = canvas.getContext('2d');
-            canvas.addEventListener('mousedown', () => drawing = true);
-            canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('touchstart', (e) => { drawing = true; draw(e); }, {passive: false});
-            canvas.addEventListener('touchend', () => { drawing = false; ctx.beginPath(); });
-            canvas.addEventListener('touchmove', (e) => draw(e), {passive: false});
-        }
-        function draw(e) {
-            if (!drawing) return; e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX || (e.touches && e.touches.clientX)) - rect.left;
-            const y = (e.clientY || (e.touches && e.touches.clientY)) - rect.top;
-            ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineTo(x, y); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x, y);
-        }
-        function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
-
-        async function saveAndSend() {
-            const btn = document.getElementById('sendBtn');
-            const status = document.getElementById('status');
-            const project = document.getElementById('project').value;
-            if(!project) { alert("Projektname fehlt!"); return; }
-            btn.disabled = true; status.innerText = "Sende...";
-
-            const reportData = {
-                projekt: project,
-                datum: document.getElementById('date').value,
-                stunden: parseFloat(document.getElementById('hours').value) || 0,
-                arbeit_text: document.getElementById('work').value,
-                wetter: document.getElementById('weather').value
-            };
-
-            try {
-                const { error } = await sb.from('berichte').insert([reportData]);
-                if (error) throw error;
-                status.innerText = "Cloud OK! Erzeuge PDF...";
-                generatePDF(reportData);
-                alert("Bericht erfolgreich gesendet!");
-            } catch (err) {
-                alert("Cloud-Fehler: " + err.message);
-            } finally { btn.disabled = false; status.innerText = ""; }
-        }
-
-        function generatePDF(data) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("REF-BAU TAGESBERICHT", 20, 20);
-            doc.text(`Projekt: ${data.projekt}`, 20, 40);
-            doc.text(`Datum: ${data.datum}`, 20, 50);
-            const sigImg = canvas.toDataURL("image/png");
-            doc.addImage(sigImg, 'PNG', 20, 100, 60, 20);
-            doc.save(`REF-BAU_${data.projekt}.pdf`);
-        }
     </script>
 </body>
 </html>
- */
-</script>
 
 
 
