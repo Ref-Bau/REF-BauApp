@@ -20,33 +20,48 @@
         </div>
     </div>
 
-    <script>
-        const URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
-        const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
-        let sb;
+   <script>
+    // === DEINE DATEN (HIER EINTRAGEN!) ===
+    const URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
+    
+    let sb;
 
-        // Wir warten 3 Sekunden, bevor wir aufgeben
-        setTimeout(() => {
-            const status = document.getElementById('status');
-            if (typeof supabase !== 'undefined') {
-                sb = supabase.createClient(URL, KEY);
-                status.innerText = "System bereit ✅";
-                status.className = "p-3 bg-green-100 text-green-700 font-bold rounded mb-4 uppercase text-[10px]";
-                document.getElementById('loginForm').classList.remove('hidden');
-            } else {
-                status.innerText = "FEHLER: BIBLIOTHEK BLOCKIERT!";
-                alert("Dein Netzwerk blockiert die Verbindung. Schalte das WLAN am Handy aus und nutze mobile Daten!");
-            }
-        }, 3000);
-
-        async function doLogin() {
-            const e = document.getElementById('email').value;
-            const p = document.getElementById('password').value;
-            const { error } = await sb.auth.signInWithPassword({email: e, password: p});
-            if (error) alert(error.message);
-            else alert("Erfolg! Willkommen bei REF-BAU.");
+    // Wir versuchen die Verbindung sofort und ohne Umwege
+    try {
+        // Falls die normale Bibliothek blockiert wird, nutzen wir das Fenster-Objekt
+        const supabaseClient = window.supabase ? window.supabase.createClient : null;
+        
+        if (supabaseClient) {
+            sb = supabaseClient(URL, KEY);
+            console.log("REF-BAU: Direktverbindung aufgebaut.");
+            
+            // Status-Anzeige auf der Seite aktualisieren
+            window.addEventListener('load', () => {
+                const status = document.getElementById('status');
+                if(status) {
+                    status.innerText = "System bereit ✅";
+                    status.className = "p-3 bg-green-100 text-green-700 font-bold rounded mb-4 uppercase text-[10px]";
+                    document.getElementById('loginForm').classList.remove('hidden');
+                }
+            });
         }
-    </script>
+    } catch (e) {
+        alert("Kritischer Netzwerkfehler: " + e.message);
+    }
+
+    async function doLogin() {
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('password').value;
+        const { error } = await sb.auth.signInWithPassword({email: e, password: p});
+        if (error) alert("Login fehlgeschlagen: " + error.message);
+        else {
+            alert("Erfolg! Willkommen bei REF-BAU.");
+            // Hier das Formular anzeigen
+        }
+    }
+</script>
+
 </body>
 </html>
 
