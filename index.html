@@ -159,24 +159,10 @@
 </body>
 </html>
 
--- Tabelle für Bautagesberichte erstellen
-CREATE TABLE IF NOT EXISTS berichte (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  erstellt_am timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
-  projekt text NOT NULL,
-  datum date NOT NULL,
-  wetter text,
-  temperatur text,
-  arbeit_text text,
-  mitarbeiter_email text DEFAULT auth.email() -- Speichert automatisch, wer eingeloggt ist!
-);
-
--- Sicherheit aktivieren (RLS)
-ALTER TABLE berichte ENABLE ROW LEVEL SECURITY;
-
--- Fügt die Spalte 'stunden' als Dezimalzahl hinzu (z.B. 8.5 für 8 Std. 30 Min.)
-ALTER TABLE berichte 
-ADD COLUMN IF NOT EXISTS stunden DECIMAL(10,2) DEFAULT 0;
 
 
+
+// ACHTUNG: Hier müssen DEINE echten Daten stehen!
+const SUPABASE_URL = 'https://hvvuzldppehewkotppdz.supabase.co'; // Deine kopierte URL
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Dein langer anon Key
 
