@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REF-BAU Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net"></script>
+    <script src="https://cdnjs.cloudflare.com"></script>
+</head>
+<body class="bg-gray-100 p-4 pb-10">
+
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6">
+        <!-- Header / Logo -->
+        <div class="flex items-center justify-between mb-6 border-b pb-4">
+            <div class="text-3xl font-extrabold text-blue-900 italic">REF-BAU</div>
+            <div class="text-[10px] text-gray-400 text-right uppercase tracking-widest font-bold">Admin Dashboard & Cloud Sync</div>
+        </div>
+
+        <!-- LOGIN BEREICH -->
+        <div id="loginSection" class="space-y-4">
+            <h2 class="text-lg font-bold text-gray-700">Mitarbeiter Login</h2>
+            <input type="email" id="email" placeholder="E-Mail (@ref-bau.de)" class="w-full border p-3 rounded-lg">
+            <input type="password" id="password" placeholder="Passwort" class="w-full border p-3 rounded-lg">
+            <button onclick="handleLogin()" class="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-md">Anmelden</button>
+        </div>
+
+        <!-- HAUPT APP (Zuerst versteckt) -->
+        <div id="appSection" class="hidden space-y-4">
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase">Projekt</label>
+                    <input type="text" id="project" class="w-full border p-2 rounded" placeholder="Baustelle Name">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase">Datum</label>
+                    <input type="date" id="date" class="w-full border p-2 rounded">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase">Stunden</label>
+                    <input type="number" id="hours" step="0.5" class="w-full border p-2 rounded" placeholder="z.B. 8.5">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase">Wetter</label>
+                    <select id="weather" class="w-full border p-2 rounded">
+                        <option>Sonnig</option><option>Regen</option><option>Frost</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase">Tätigkeit</label>
+                <textarea id="work" rows="3" class="w-full border p-2 rounded" placeholder="Was wurde heute erledigt?"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase">Unterschrift</label>
+                <canvas id="sig-canvas" width="350" height="120" class="border-2 border-dashed border-gray-300 w-full bg-gray-50 rounded touch-none"></canvas>
+                <button onclick="clearSig()" class="text-[10px] text-red-500 underline">Löschen</button>
+            </div>
+
+            <button onclick="saveAndSend()" id="sendBtn" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-green-700 transition uppercase tracking-wider">
+                Bericht an Zentrale senden
+            </button>
+            
+            <p id="status" class="text-center text-sm font-bold text-blue-600"></p>
+        </div>
+    </div>
+
+    <script>
+        // HIER DEINE DATEN EINTRAGEN
+        const SUPABASE_URL = 'DEINE_URL_HIER';
+        const SUPABASE_KEY = 'DEIN_KEY_HIER';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let drawing = false;
+        const canvas = document.getElementById('sig-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Login Logik
+        async function handleLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) alert("Fehler: " + error.message);
+            else checkUser();
+        }
+
+        async function checkUser() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('appSection').classList.remove('hidden');
+                document.getElementById('date').valueAsDate = new Date();
+            }
+        }
+
+        // Zeichnen Logik
+        canvas.addEventListener('mousedown', start); canvas.addEventListener('touchstart', start);
+        canvas.addEventListener('mouseup', stop); canvas.addEventListener('touchend', stop);
+        canvas.addEventListener('mousemove', draw); canvas.addEventListener('touchmove', draw);
+
+        function start(e) { drawing = true; draw(e); }
+        function stop() { drawing = false; ctx.beginPath(); }
+        function draw(e) {
+            if (!drawing) return; e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            ctx.lineWidth = 2; ctx.lineTo(x, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y);
+        }
+        function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+        // Speichern & Senden
+        async function saveAndSend() {
+            const btn = document.getElementById('sendBtn');
+            const status = document.getElementById('status');
+            btn.disabled = true;
+            status.innerText = "Sende Daten...";
+
+            const reportData = {
+                projekt: document.getElementById('project').value,
+                datum: document.getElementById('date').value,
+                stunden: parseFloat(document.getElementById('hours').value) || 0,
+                arbeit_text: document.getElementById('work').value,
+                wetter: document.getElementById('weather').value
+            };
+
+            const { error } = await supabase.from('berichte').insert([reportData]);
+
+            if (error) {
+                alert("Fehler beim Senden: " + error.message);
+            } else {
+                status.innerText = "Erfolgreich gesendet! Erzeuge PDF...";
+                generatePDF(reportData);
+                alert("Bericht wurde in der Cloud gespeichert und als PDF erstellt.");
+            }
+            btn.disabled = false;
+        }
+
+        function generatePDF(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("REF-BAU TAGESBERICHT", 20, 20);
+            doc.text(`Projekt: ${data.projekt}`, 20, 40);
+            doc.text(`Datum: ${data.datum}`, 20, 50);
+            doc.text(`Stunden: ${data.stunden}`, 20, 60);
+            doc.text(`Arbeiten: ${data.arbeit_text}`, 20, 70);
+            doc.addImage(canvas.toDataURL("image/png"), 'PNG', 20, 100, 100, 40);
+            doc.save(`REF_Bau_${data.projekt}_${data.datum}.pdf`);
+        }
+
+        window.onload = checkUser;
+    </script>
+</body>
+</html>
+
+-- Tabelle für Bautagesberichte erstellen
+CREATE TABLE IF NOT EXISTS berichte (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  erstellt_am timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  projekt text NOT NULL,
+  datum date NOT NULL,
+  wetter text,
+  temperatur text,
+  arbeit_text text,
+  mitarbeiter_email text DEFAULT auth.email() -- Speichert automatisch, wer eingeloggt ist!
+);
+
+-- Sicherheit aktivieren (RLS)
+ALTER TABLE berichte ENABLE ROW LEVEL SECURITY;
+
+-- Fügt die Spalte 'stunden' als Dezimalzahl hinzu (z.B. 8.5 für 8 Std. 30 Min.)
+ALTER TABLE berichte 
+ADD COLUMN IF NOT EXISTS stunden DECIMAL(10,2) DEFAULT 0;
+
+
+
