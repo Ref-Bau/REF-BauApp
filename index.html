@@ -35,6 +35,20 @@
 </div>
 
 <script>
+// Prüfe alle 2 Sekunden, ob Supabase jetzt geladen wurde
+const checkLib = setInterval(() => {
+    if (window.supabase) {
+        clearInterval(checkLib);
+        debug.innerText = "✅ Bibliothek jetzt geladen!";
+        debug.style.color = "green";
+        // Client jetzt erst erstellen
+        client = window.supabase.createClient(URL, KEY);
+    } else {
+        debug.innerText = "❌ Bibliothek fehlt immer noch... (Prüfe Internet/Adblock)";
+        debug.style.color = "red";
+    }
+}, 2000);
+
     // --- 1. DATEN HIER EINTRAGEN ---
     const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
