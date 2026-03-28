@@ -62,6 +62,9 @@
 
 <script>
     // --- SUPABASE SETUP ---
+if (typeof supabase === 'undefined') {
+    alert("Fehler: Supabase Bibliothek konnte nicht geladen werden. Prüfe deine Internetverbindung!");
+}
     const SUPABASE_URL = 'https://hvvuzldppehewkotppdz.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
