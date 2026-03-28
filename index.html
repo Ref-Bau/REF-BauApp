@@ -3,140 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REF-Bau App</title>
+    <title>REF-Bau App | Tagesbericht</title>
+    <!-- Supabase Bibliothek laden -->
     <script src="https://cdn.jsdelivr.net"></script>
     <style>
-        :root { --primary: #27ae60; --dark: #2c3e50; --light: #f4f7f6; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--light); margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .app-container { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        h2 { color: var(--dark); text-align: center; margin-bottom: 25px; }
-        label { display: block; margin-top: 15px; font-weight: 600; color: #555; }
-        input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; margin-top: 20px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
-        button:hover { opacity: 0.9; }
+        :root { --green: #27ae60; --dark: #2c3e50; --bg: #f0f2f5; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: var(--dark); margin-bottom: 20px; border-bottom: 2px solid var(--green); padding-bottom: 10px; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #444; }
+        input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 15px; background: var(--green); color: white; border: none; border-radius: 6px; margin-top: 20px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        button:hover { background: #219150; }
         .hidden { display: none; }
-        #status { margin-top: 15px; text-align: center; font-size: 14px; }
-        .gps-badge { display: inline-block; padding: 5px 10px; background: #e8f5e9; color: #2e7d32; border-radius: 5px; font-size: 12px; margin-top: 5px; }
+        #status-msg { margin-top: 15px; text-align: center; padding: 10px; border-radius: 5px; font-size: 14px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
 
-<div class="app-container">
-    <h2>🏗️ REF-Bau Tagesbericht</h2>
+<div class="card">
+    <h2>🏗️ REF-Bau App</h2>
 
-    <!-- LOGIN BEREICH -->
-    <div id="login-section">
+    <!-- LOGIN FORMULAR -->
+    <div id="login-form">
         <label>E-Mail</label>
-        <input type="email" id="email" placeholder="name@ref-bau.de">
+        <input type="email" id="login-email" placeholder="beispiel@ref-bau.de">
         <label>Passwort</label>
-        <input type="password" id="password" placeholder="••••••••">
-        <button onclick="login()">Anmelden</button>
+        <input type="password" id="login-pass" placeholder="••••••••">
+        <button onclick="handleLogin()">Anmelden</button>
     </div>
 
-    <!-- HAUPT FORMULAR -->
-    <div id="main-app" class="hidden">
-        <div id="user-info" style="text-align: right; font-size: 12px; color: #888;"></div>
-        
-        <label>Projektname</label>
-        <select id="projekt"><option>Lade Projekte...</option></select>
+    <!-- HAUPT-APP (Nach Login sichtbar) -->
+    <div id="app-form" class="hidden">
+        <label>Projekt wählen</label>
+        <select id="projekt-select"><option>Lade Projekte...</option></select>
 
-        <label>Mitarbeiter anwesend</label>
-        <input type="text" id="mitarbeiter" placeholder="Namen mit Komma trennen">
+        <label>Mitarbeiter vor Ort</label>
+        <input type="text" id="mitarbeiter" placeholder="z.B. Max, Leon, Anna">
 
-        <label>Arbeitszeit (Stunden gesamt)</label>
+        <label>Stunden (Gesamt)</label>
         <input type="number" id="stunden" value="8.5" step="0.5">
 
-        <label>Tätigkeiten & Fotos</label>
-        <textarea id="bericht" rows="4" placeholder="Was wurde heute gemacht?"></textarea>
-        
-        <input type="file" id="bilder" multiple accept="image/*" style="margin-top: 10px;">
-        
-        <div id="gps-info" class="gps-badge">📍 GPS: Suche Standort...</div>
+        <label>Bericht / Tätigkeiten</label>
+        <textarea id="bericht" rows="4" placeholder="Was wurde heute erledigt?"></textarea>
 
-        <button onclick="senden()">Bericht an Admin & OneDrive</button>
-        <button onclick="logout()" style="background: #e74c3c; margin-top: 10px; padding: 8px; font-size: 12px;">Abmelden</button>
+        <div id="gps-display" style="font-size: 12px; color: #666; margin-top: 10px;">📍 GPS: Suche...</div>
+
+        <button onclick="sendReport()">Bericht absenden</button>
+        <button onclick="location.reload()" style="background:#888; margin-top:10px; padding:8px; font-size:12px;">Logout</button>
     </div>
 
-    <div id="status"></div>
+    <div id="status-msg"></div>
 </div>
 
 <script>
-    // --- SUPABASE SETUP ---
-if (typeof supabase === 'undefined') {
-    alert("Fehler: Supabase Bibliothek konnte nicht geladen werden. Prüfe deine Internetverbindung!");
-}
-    const SUPABASE_URL = 'https://hvvuzldppehewkotppdz.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // --- 1. SETUP (DEINE DATEN HIER EINTRAGEN) ---
+    const SB_URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
+    const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
-    let userCoords = "Unbekannt";
+    let coords = "Nicht erfasst";
 
-    // 1. LOGIN FUNKTION
-    async function login() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    // GPS sofort beim Start abfragen
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(p => {
+            coords = `${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`;
+            document.getElementById('gps-display').innerText = "📍 GPS: " + coords;
+        });
+    }
+
+    // --- 2. LOGIN LOGIK ---
+    async function handleLogin() {
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-pass').value;
+        const msg = document.getElementById('status-msg');
+
+        const { data, error } = await supabase.auth.signInWithPassword({ email: email, password: pass });
 
         if (error) {
-            alert("Login fehlgeschlagen: " + error.message);
+            msg.className = "error";
+            msg.innerText = "Login Fehler: " + error.message;
         } else {
-            showApp(data.user);
+            msg.innerText = "";
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('app-form').classList.remove('hidden');
+            loadProjekte();
         }
     }
 
-    function showApp(user) {
-        document.getElementById('login-section').classList.add('hidden');
-        document.getElementById('main-app').classList.remove('hidden');
-        document.getElementById('user-info').innerText = "Eingeloggt als: " + user.email;
-        loadProjekte();
-        startGPS();
-    }
-
-    // 2. GPS STARTEN
-    function startGPS() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(pos => {
-                userCoords = `${pos.coords.latitude}, ${pos.coords.longitude}`;
-                document.getElementById('gps-info').innerText = "📍 GPS: Aktiv (" + userCoords + ")";
-            });
-        }
-    }
-
-    // 3. PROJEKTE LADEN
+    // --- 3. PROJEKTE LADEN ---
     async function loadProjekte() {
-        const { data } = await supabaseClient.from('projekte').select('name');
+        const { data } = await supabase.from('projekte').select('name').eq('aktiv', true);
         if (data) {
-            document.getElementById('projekt').innerHTML = data.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+            const select = document.getElementById('projekt-select');
+            select.innerHTML = data.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
         }
     }
 
-    // 4. BERICHT SENDEN
-    async function senden() {
-        const status = document.getElementById('status');
-        status.innerHTML = "⌛ Speichere in Supabase & Cloud...";
+    // --- 4. BERICHT ABSENDEN ---
+    async function sendReport() {
+        const msg = document.getElementById('status-msg');
+        msg.className = "";
+        msg.innerText = "⌛ Wird gespeichert...";
 
         const payload = {
-            projekt_name: document.getElementById('projekt').value,
+            projekt_name: document.getElementById('projekt-select').value,
             mitarbeiter_liste: document.getElementById('mitarbeiter').value,
             arbeitsstunden: document.getElementById('stunden').value,
             bericht_text: document.getElementById('bericht').value,
-            gps_coords: userCoords
+            gps_coords: coords
         };
 
-        const { error } = await supabaseClient.from('tagesberichte').insert([payload]);
+        const { error } = await supabase.from('tagesberichte').insert([payload]);
 
         if (error) {
-            status.innerHTML = "❌ Fehler: " + error.message;
+            msg.className = "error";
+            msg.innerText = "Fehler beim Speichern: " + error.message;
         } else {
-            status.innerHTML = "✅ Erfolg! Bericht wurde im OneDrive-Ordner des Admins archiviert.";
-            status.style.color = "green";
+            msg.className = "success";
+            msg.innerText = "✅ Bericht erfolgreich übertragen!";
+            // Felder leeren
+            document.getElementById('bericht').value = "";
         }
     }
-
-    async function logout() {
-        await supabaseClient.auth.signOut();
-        location.reload();
-    }
 </script>
+
 </body>
 </html>
+
