@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REF-Bau App | Direkt-Connect</title>
+    <title>REF-Bau App | Direkt-Modus</title>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #27ae60; }
-        h2 { text-align: center; color: #2c3e50; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        #status-box { font-size: 12px; padding: 10px; margin-bottom: 15px; border-radius: 6px; text-align: center; background: #d4edda; color: #155724; font-weight: bold; }
+        :root { --green: #27ae60; --dark: #2c3e50; --bg: #f0f2f5; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-top: 5px solid var(--green); }
+        h2 { text-align: center; color: var(--dark); margin-top: 0; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
+        input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 15px; background: var(--green); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 20px; transition: 0.3s; }
+        button:hover { background: #219150; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status-box { font-size: 13px; padding: 12px; margin-bottom: 20px; border-radius: 8px; text-align: center; background: #e8f5e9; color: #2e7d32; font-weight: bold; }
         .hidden { display: none; }
+        .logout-btn { background: #e74c3c; margin-top: 10px; padding: 8px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -20,71 +25,83 @@
     <div id="status-box">🚀 System bereit (Direkt-Modus)</div>
     <h2>🏗️ REF-Bau Login</h2>
 
+    <!-- 1. LOGIN BEREICH -->
     <div id="login-form">
-        <input type="email" id="email" placeholder="E-Mail">
-        <input type="password" id="pass" placeholder="Passwort">
-        <button onclick="handleLogin()">ANMELDEN</button>
+        <label>E-Mail</label>
+        <input type="email" id="email" placeholder="name@ref-bau.de">
+        <label>Passwort</label>
+        <input type="password" id="pass" placeholder="••••••••">
+        <button id="login-btn">ANMELDEN</button>
     </div>
 
+    <!-- 2. HAUPT-APP (Wird nach Login sichtbar) -->
     <div id="app-content" class="hidden">
-    <h3 style="color: #27ae60; text-align: center;">✅ Eingeloggt</h3>
-    
-    <label>Projekt wählen</label>
-    <select id="projekt-select">
-        <option>Standardprojekt</option>
-    </select>
+        <h3 style="color: var(--green); text-align: center;">✅ Zentrale</h3>
+        
+        <label>Projekt wählen</label>
+        <select id="projekt-select">
+            <option value="Neubau Berlin-Mitte">Neubau Berlin-Mitte</option>
+            <option value="Sanierung Schule West">Sanierung Schule West</option>
+            <option value="Kita Sonnenstrahl">Kita Sonnenstrahl</option>
+        </select>
 
-    <label>Mitarbeiter vor Ort</label>
-    <input type="text" id="mitarbeiter" placeholder="z.B. Max, Leon, Anna">
+        <label>Mitarbeiter vor Ort</label>
+        <input type="text" id="mitarbeiter" placeholder="z.B. Max, Leon, Anna">
 
-    <label>Arbeitsstunden (Gesamt)</label>
-    <input type="number" id="stunden" value="8.5" step="0.5">
+        <label>Stunden (Gesamt)</label>
+        <input type="number" id="stunden" value="8.5" step="0.5">
 
-    <label>Tätigkeitsbericht</label>
-    <textarea id="bericht" rows="4" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc;" placeholder="Was wurde heute erledigt?"></textarea>
+        <label>Tätigkeitsbericht</label>
+        <textarea id="bericht" rows="4" placeholder="Was wurde heute erledigt?"></textarea>
 
-    <button onclick="sendReport()" id="send-btn">Bericht absenden</button>
-    <button onclick="location.reload()" style="background:#888; margin-top:10px; padding:8px; font-size:12px;">Abmelden</button>
-</div>
+        <div id="gps-display" style="font-size: 11px; color: #666; margin-top: 10px;">📍 GPS: Suche Standort...</div>
 
+        <button id="send-report-btn">Bericht absenden</button>
+        <button onclick="location.reload()" class="logout-btn">Abmelden</button>
+    </div>
 </div>
 
 <script>
+    // --- KONFIGURATION ---
     const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
 
-    async function handleLogin() {
+    let userCoords = "Wird ermittelt...";
+
+    // Echte GPS Abfrage beim Start
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(p => {
+            userCoords = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
+            document.getElementById('gps-display').innerText = "📍 GPS: Aktiv (" + userCoords + ")";
+        });
+    }
+
+    // LOGIN FUNKTION
+    async function startLogin() {
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('pass').value;
         const statusBox = document.getElementById('status-box');
+
+        if(!email || !password) return alert("Bitte Daten eingeben!");
 
         statusBox.innerText = "⏳ Prüfe Login...";
         statusBox.style.background = "#fff3cd";
 
         try {
-            // Wir senden die Login-Daten direkt an die Supabase API
             const response = await fetch(`${URL}/auth/v1/token?grant_type=password`, {
                 method: 'POST',
-                headers: {
-                    'apikey': KEY,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'apikey': KEY, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
 
             const result = await response.json();
+            if (!response.ok) throw new Error(result.error_description || result.error || "Login fehlgeschlagen");
 
-            if (!response.ok) {
-                throw new Error(result.error_description || result.error || "Login fehlgeschlagen");
-            }
-
-            // Erfolg!
-            statusBox.innerText = "✅ Willkommen!";
+            // Erfolg
+            statusBox.innerText = "✅ Login erfolgreich!";
             statusBox.style.background = "#d4edda";
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('app-content').classList.remove('hidden');
-            
-            console.log("Token erhalten:", result.access_token);
 
         } catch (e) {
             alert("Fehler: " + e.message);
@@ -92,68 +109,62 @@
             statusBox.style.background = "#f8d7da";
         }
     }
-async function sendReport() {
-    const statusBox = document.getElementById('status-box');
-    
-    // Daten aus den Feldern holen
-    const payload = {
-        projekt_name: document.getElementById('projekt-select').value,
-        mitarbeiter_liste: document.getElementById('mitarbeiter').value || "Nicht angegeben",
-        arbeitsstunden: parseFloat(document.getElementById('stunden').value) || 0,
-        bericht_text: document.getElementById('bericht').value,
-        gps_coords: "Abgefragt" 
-    };
 
-    if (!payload.bericht_text) {
-        alert("Bitte einen Berichtstext eingeben!");
-        return;
-    }
+    // BERICHT SENDEN FUNKTION
+    async function sendReport() {
+        const statusBox = document.getElementById('status-box');
+        const btn = document.getElementById('send-report-btn');
+        
+        const payload = {
+            projekt_name: document.getElementById('projekt-select').value,
+            mitarbeiter_liste: document.getElementById('mitarbeiter').value,
+            arbeitsstunden: parseFloat(document.getElementById('stunden').value),
+            bericht_text: document.getElementById('bericht').value,
+            gps_coords: userCoords
+        };
 
-    statusBox.innerText = "⏳ Sende Bericht...";
+        if(!payload.bericht_text) return alert("Bitte Bericht ausfüllen!");
 
-    try {
-        const response = await fetch(`${URL}/rest/v1/tagesberichte`, {
-            method: 'POST',
-            headers: {
-                'apikey': KEY,
-                'Authorization': `Bearer ${KEY}`, // Der Anon-Key dient hier als Autorisierung
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal' // Wichtig für die REST-API
-            },
-            body: JSON.stringify(payload)
-        });
+        statusBox.innerText = "⏳ Sende Daten...";
+        btn.disabled = true;
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Datenbank-Fehler");
+        try {
+            const response = await fetch(`${URL}/rest/v1/tagesberichte`, {
+                method: 'POST',
+                headers: {
+                    'apikey': KEY,
+                    'Authorization': `Bearer ${KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || "Datenbank-Fehler");
+            }
+
+            statusBox.innerText = "✅ Bericht gespeichert!";
+            statusBox.style.background = "#d4edda";
+            alert("Erfolg! Der Bericht ist in der Datenbank.");
+            document.getElementById('bericht').value = ""; // Feld leeren
+
+        } catch (e) {
+            alert("Fehler beim Speichern: " + e.message);
+            statusBox.innerText = "❌ Fehler beim Senden";
+        } finally {
+            btn.disabled = false;
         }
-
-        statusBox.innerText = "✅ Bericht erfolgreich gesendet!";
-        statusBox.style.background = "#d4edda";
-        alert("Bericht gespeichert!");
-        document.getElementById('bericht').value = ""; // Feld leeren
-        
-    } catch (e) {
-        console.error("Speicherfehler:", e);
-        alert("Fehler beim Speichern: " + e.message);
-        statusBox.innerText = "❌ Fehler: " + e.message;
-        statusBox.style.background = "#f8d7da";
     }
-}
-        
-        // Formular leeren
-        document.getElementById('bericht').value = "";
-    } catch (e) {
-        alert("Fehler: " + e.message);
-        statusBox.innerText = "❌ Fehler: " + e.message;
-    } finally {
-        btn.disabled = false;
-    }
-}
 
+    // Event-Listener verknüpfen (Sicherer Weg)
+    document.getElementById('login-btn').addEventListener('click', startLogin);
+    document.getElementById('send-report-btn').addEventListener('click', sendReport);
 </script>
 
 </body>
 </html>
+
 
 
