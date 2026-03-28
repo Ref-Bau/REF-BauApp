@@ -2,134 +2,76 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REF-Bau App | Tagesbericht</title>
-    <!-- Supabase Bibliothek laden -->
+    <title>REF-Bau App Fix</title>
     <script src="https://cdn.jsdelivr.net"></script>
     <style>
-        :root { --green: #27ae60; --dark: #2c3e50; --bg: #f0f2f5; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: var(--dark); margin-bottom: 20px; border-bottom: 2px solid var(--green); padding-bottom: 10px; }
-        label { display: block; margin-top: 15px; font-weight: bold; color: #444; }
-        input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background: var(--green); color: white; border: none; border-radius: 6px; margin-top: 20px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        button:hover { background: #219150; }
+        body { font-family: sans-serif; padding: 20px; max-width: 400px; margin: auto; background: #f0f0f0; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
         .hidden { display: none; }
-        #status-msg { margin-top: 15px; text-align: center; padding: 10px; border-radius: 5px; font-size: 14px; }
-        .success { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>🏗️ REF-Bau App</h2>
+    <h2>🏗️ REF-Bau Login</h2>
+    
+    <!-- Test Button -->
+    <button onclick="alert('HTML Verbindung OK!')" style="background: #3498db;">1. Klick-Test (Muss Pop-up zeigen)</button>
 
-    <!-- LOGIN FORMULAR -->
-    <div id="login-form">
-        <label>E-Mail</label>
-        <input type="email" id="login-email" placeholder="beispiel@ref-bau.de">
-        <label>Passwort</label>
-        <input type="password" id="login-pass" placeholder="••••••••">
-        <button onclick="handleLogin()">Anmelden</button>
+    <div id="login-area">
+        <input type="email" id="email" placeholder="E-Mail">
+        <input type="password" id="password" placeholder="Passwort">
+        <button onclick="jetztAnmelden()">2. ANMELDEN</button>
     </div>
 
-    <!-- HAUPT-APP (Nach Login sichtbar) -->
-    <div id="app-form" class="hidden">
-        <label>Projekt wählen</label>
-        <select id="projekt-select"><option>Lade Projekte...</option></select>
-
-        <label>Mitarbeiter vor Ort</label>
-        <input type="text" id="mitarbeiter" placeholder="z.B. Max, Leon, Anna">
-
-        <label>Stunden (Gesamt)</label>
-        <input type="number" id="stunden" value="8.5" step="0.5">
-
-        <label>Bericht / Tätigkeiten</label>
-        <textarea id="bericht" rows="4" placeholder="Was wurde heute erledigt?"></textarea>
-
-        <div id="gps-display" style="font-size: 12px; color: #666; margin-top: 10px;">📍 GPS: Suche...</div>
-
-        <button onclick="sendReport()">Bericht absenden</button>
-        <button onclick="location.reload()" style="background:#888; margin-top:10px; padding:8px; font-size:12px;">Logout</button>
+    <div id="app-area" class="hidden">
+        <h3>✅ Login erfolgreich!</h3>
+        <p>Du bist jetzt im Hauptmenü.</p>
+        <button onclick="location.reload()">Abmelden</button>
     </div>
 
-    <div id="status-msg"></div>
+    <div id="debug-log" style="font-size: 10px; color: red; margin-top: 20px;"></div>
 </div>
 
 <script>
-    // --- 1. SETUP (DEINE DATEN HIER EINTRAGEN) ---
-    const SB_URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co';
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
-    const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+    // --- 1. DATEN EINTRAGEN ---
+    const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; // https://xyz.supabase.co
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
 
-    let coords = "Nicht erfasst";
+    // Client initialisieren
+    const supabaseClient = supabase.createClient(URL, KEY);
 
-    // GPS sofort beim Start abfragen
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(p => {
-            coords = `${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`;
-            document.getElementById('gps-display').innerText = "📍 GPS: " + coords;
-        });
-    }
+    async function jetztAnmelden() {
+        const log = document.getElementById('debug-log');
+        const mail = document.getElementById('email').value;
+        const pass = document.getElementById('password').value;
 
-    // --- 2. LOGIN LOGIK ---
-    async function handleLogin() {
-        const email = document.getElementById('login-email').value;
-        const pass = document.getElementById('login-pass').value;
-        const msg = document.getElementById('status-msg');
+        console.log("Versuche Login für:", mail);
+        log.innerText = "Sende Daten an Supabase...";
 
-        const { data, error } = await supabase.auth.signInWithPassword({ email: email, password: pass });
+        try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: mail.trim(),
+                password: pass
+            });
 
-        if (error) {
-            msg.className = "error";
-            msg.innerText = "Login Fehler: " + error.message;
-        } else {
-            msg.innerText = "";
-            document.getElementById('login-form').classList.add('hidden');
-            document.getElementById('app-form').classList.remove('hidden');
-            loadProjekte();
-        }
-    }
-
-    // --- 3. PROJEKTE LADEN ---
-    async function loadProjekte() {
-        const { data } = await supabase.from('projekte').select('name').eq('aktiv', true);
-        if (data) {
-            const select = document.getElementById('projekt-select');
-            select.innerHTML = data.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-        }
-    }
-
-    // --- 4. BERICHT ABSENDEN ---
-    async function sendReport() {
-        const msg = document.getElementById('status-msg');
-        msg.className = "";
-        msg.innerText = "⌛ Wird gespeichert...";
-
-        const payload = {
-            projekt_name: document.getElementById('projekt-select').value,
-            mitarbeiter_liste: document.getElementById('mitarbeiter').value,
-            arbeitsstunden: document.getElementById('stunden').value,
-            bericht_text: document.getElementById('bericht').value,
-            gps_coords: coords
-        };
-
-        const { error } = await supabase.from('tagesberichte').insert([payload]);
-
-        if (error) {
-            msg.className = "error";
-            msg.innerText = "Fehler beim Speichern: " + error.message;
-        } else {
-            msg.className = "success";
-            msg.innerText = "✅ Bericht erfolgreich übertragen!";
-            // Felder leeren
-            document.getElementById('bericht').value = "";
+            if (error) {
+                alert("Supabase sagt: " + error.message);
+                log.innerText = "Fehler: " + error.message;
+            } else {
+                alert("Erfolg! Willkommen.");
+                document.getElementById('login-area').classList.add('hidden');
+                document.getElementById('app-area').classList.remove('hidden');
+                log.innerText = "";
+            }
+        } catch (err) {
+            alert("Script Fehler: " + err.message);
+            log.innerText = "Script Fehler: " + err.message;
         }
     }
 </script>
-
 </body>
 </html>
 
