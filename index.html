@@ -37,67 +37,66 @@
 </div>
 
 <script>
-    // --- 1. KONFIGURATION (DEINE DATEN) ---
-    const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
-    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
+    // --- 1. KONFIGURATION ---
+const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
+const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA'; // Den langen Key hier rein!
 
-    const status = document.getElementById('status-box');
-    let supabaseClient;
+const statusBox = document.getElementById('status-box');
+let supabaseClient = null;
 
-    // --- 2. START-CHECK & INITIALISIERUNG ---
-    function initApp() {
+// --- 2. SICHERES LADEN DER BIBLIOTHEK ---
+function initializeSupabase() {
+    if (window.supabase) {
         try {
-            if (typeof window.supabase === 'undefined') {
-                status.innerText = "⚠️ Bibliothek fehlt! Lade alternative...";
-                status.style.background = "#fff3cd";
-                // Falls CDN blockiert, versuchen wir es manuell
-                return;
-            }
             supabaseClient = window.supabase.createClient(URL, KEY);
-            status.innerText = "🚀 System bereit (Verbunden)";
-            status.style.background = "#d4edda";
-            status.style.color = "#155724";
+            statusBox.innerText = "🚀 System bereit (Verbunden)";
+            statusBox.style.background = "#d4edda";
+            statusBox.style.color = "#155724";
         } catch (e) {
-            status.innerText = "❌ Fehler: " + e.message;
-            status.style.background = "#f8d7da";
+            statusBox.innerText = "❌ Konfigurationsfehler: " + e.message;
         }
+    } else {
+        statusBox.innerText = "⚠️ Bibliothek fehlt! Prüfe Internet/Adblock";
+        statusBox.style.background = "#f8d7da";
+    }
+}
+
+// --- 3. LOGIN FUNKTION (MIT SCHUTZ) ---
+async function handleLogin() {
+    // PRÜFUNG: Ist der Client überhaupt da?
+    if (!supabaseClient) {
+        alert("System nicht bereit! Die Supabase-Bibliothek konnte nicht geladen werden.");
+        return;
     }
 
-    // --- 3. LOGIN FUNKTION ---
-    async function handleLogin() {
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('pass').value;
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('pass').value;
 
-        if (!email || !password) {
-            alert("Bitte E-Mail und Passwort eingeben.");
-            return;
+    statusBox.innerText = "⏳ Verbindung wird aufgebaut...";
+    
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ 
+            email: email, 
+            password: password 
+        });
+
+        if (error) {
+            alert("Login fehlgeschlagen: " + error.message);
+            statusBox.innerText = "❌ " + error.message;
+        } else {
+            statusBox.innerText = "✅ Willkommen!";
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('app-content').classList.remove('hidden');
         }
-
-        status.innerText = "⏳ Verbindung zu Supabase...";
-        
-        try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ 
-                email: email, 
-                password: password 
-            });
-
-            if (error) {
-                alert("Login fehlgeschlagen: " + error.message);
-                status.innerText = "❌ " + error.message;
-                status.style.background = "#f8d7da";
-            } else {
-                status.innerText = "✅ Willkommen, " + data.user.email;
-                document.getElementById('login-form').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-            }
-        } catch (e) {
-            alert("Systemfehler: " + e.message);
-        }
+    } catch (e) {
+        alert("Kritischer Fehler: " + e.message);
     }
+}
 
-    // App beim Laden starten
-    window.onload = initApp;
-    document.getElementById('login-btn').addEventListener('click', handleLogin);
+// Startet die Prüfung, sobald die Seite lädt
+window.onload = initializeSupabase;
+document.getElementById('login-btn').addEventListener('click', handleLogin);
+
 </script>
 
 </body>
