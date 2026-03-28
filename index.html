@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REF-Bau App | Final Fix</title>
-    <!-- REPARIERTER LINK ZUR BIBLIOTHEK -->
-    <script src="https://unpkg.com"></script>
+    <title>REF-Bau App | Final Repair</title>
+    
+    <!-- NEUER ALTERNATIVER LINK (Skypack) -->
+    <script src="https://cdn.jsdelivr.net"></script>
+    
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
         .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #2c3e50; border-bottom: 2px solid #27ae60; padding-bottom: 10px; }
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; }
-        button:hover { background: #219150; }
         #status-box { font-size: 12px; padding: 10px; margin-bottom: 15px; border-radius: 6px; text-align: center; background: #eee; font-weight: bold; }
         .hidden { display: none; }
     </style>
@@ -20,7 +21,7 @@
 <body>
 
 <div class="card">
-    <div id="status-box">System wird geladen...</div>
+    <div id="status-box">🔍 Prüfe Bibliothek...</div>
     <h2>🏗️ REF-Bau Login</h2>
 
     <div id="login-form">
@@ -30,85 +31,60 @@
     </div>
 
     <div id="app-content" class="hidden">
-        <h3 style="color: #27ae60;">✅ System bereit</h3>
-        <p>Login erfolgreich!</p>
+        <h3 style="color: #27ae60;">✅ Login erfolgreich!</h3>
         <button onclick="location.reload()" style="background:#888;">Abmelden</button>
     </div>
 </div>
 
 <script>
-// --- 1. KONFIGURATION ---
 const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
 const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
 
-const statusBox = document.getElementById('status-box');
 let supabaseClient = null;
+const statusBox = document.getElementById('status-box');
 
-// --- 2. INITIALISIERUNG ---
-function initializeSupabase() {
-    // Prüfen ob die Bibliothek geladen wurde
+// FUNKTION ZUM INITIALISIEREN
+function startSystem() {
     if (window.supabase) {
-        try {
-            supabaseClient = window.supabase.createClient(URL, KEY);
-            statusBox.innerText = "🚀 System bereit (Verbunden)";
-            statusBox.style.background = "#d4edda";
-            statusBox.style.color = "#155724";
-        } catch (e) {
-            statusBox.innerText = "❌ Fehler: " + e.message;
-            statusBox.style.background = "#f8d7da";
-        }
+        supabaseClient = window.supabase.createClient(URL, KEY);
+        statusBox.innerText = "🚀 System bereit (Verbunden)";
+        statusBox.style.background = "#d4edda";
     } else {
-        statusBox.innerText = "⚠️ Bibliothek fehlt! Bitte Seite neu laden oder Internet prüfen.";
+        statusBox.innerText = "❌ Fehler: Bibliothek blockiert! Bitte Internet oder Adblocker prüfen.";
         statusBox.style.background = "#f8d7da";
     }
 }
 
-// --- 3. LOGIN FUNKTION ---
+// LOGIN FUNKTION
 async function handleLogin() {
     if (!supabaseClient) {
-        alert("System noch nicht bereit. Bitte warten...");
-        return;
+        // Falls es beim ersten Mal nicht ging, versuche es nochmal
+        startSystem();
+        if (!supabaseClient) return;
     }
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('pass').value;
 
-    if(!email || !password) {
-        alert("Bitte E-Mail und Passwort eingeben!");
-        return;
-    }
-
     statusBox.innerText = "⏳ Verbindung wird aufgebaut...";
     
     try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ 
-            email: email, 
-            password: password 
-        });
-
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) {
-            alert("Login fehlgeschlagen: " + error.message);
+            alert("Fehler: " + error.message);
             statusBox.innerText = "❌ " + error.message;
-            statusBox.style.background = "#f8d7da";
         } else {
             statusBox.innerText = "✅ Willkommen!";
-            statusBox.style.background = "#d4edda";
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('app-content').classList.remove('hidden');
         }
     } catch (e) {
-        alert("Kritischer Fehler: " + e.message);
+        alert("Fehler: " + e.message);
     }
 }
 
-// Event-Listener aktivieren
 document.getElementById('login-btn').addEventListener('click', handleLogin);
-
-// Starten sobald das Fenster geladen ist
-window.onload = initializeSupabase;
+window.onload = startSystem;
 </script>
-
 </body>
 </html>
-
-
