@@ -3,29 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REF-Bau App | Direkt-Modus</title>
+    <title>REF-Bau App | Zeit-Automatik</title>
     <style>
         :root { --green: #27ae60; --dark: #2c3e50; --bg: #f0f2f5; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-top: 5px solid var(--green); }
+        .card { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-top: 5px solid var(--green); }
         h2 { text-align: center; color: var(--dark); margin-top: 0; }
-        label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #555; font-size: 14px; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background: var(--green); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 20px; transition: 0.3s; }
-        button:hover { background: #219150; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
+        .flex-row { display: flex; gap: 10px; }
+        .flex-row div { flex: 1; }
+        button { width: 100%; padding: 15px; background: var(--green); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 20px; }
         #status-box { font-size: 13px; padding: 12px; margin-bottom: 20px; border-radius: 8px; text-align: center; background: #e8f5e9; color: #2e7d32; font-weight: bold; }
         .hidden { display: none; }
-        .logout-btn { background: #e74c3c; margin-top: 10px; padding: 8px; font-size: 12px; }
+        .info-text { font-size: 12px; color: #666; margin-top: 5px; font-style: italic; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="status-box">🚀 System bereit (Direkt-Modus)</div>
+    <div id="status-box">🚀 System bereit (Zeit-Automatik)</div>
     <h2>🏗️ REF-Bau Login</h2>
 
-    <!-- 1. LOGIN BEREICH -->
     <div id="login-form">
         <label>E-Mail</label>
         <input type="email" id="email" placeholder="name@ref-bau.de">
@@ -34,41 +33,49 @@
         <button id="login-btn">ANMELDEN</button>
     </div>
 
-    <!-- 2. HAUPT-APP (Wird nach Login sichtbar) -->
     <div id="app-content" class="hidden">
-        <h3 style="color: var(--green); text-align: center;">✅ Zentrale</h3>
+        <h3 style="color: var(--green); text-align: center;">✅ Neuer Tagesbericht</h3>
         
         <label>Projekt wählen</label>
         <select id="projekt-select">
-            <option value="Neubau Berlin-Mitte">Neubau Berlin-Mitte</option>
-            <option value="Sanierung Schule West">Sanierung Schule West</option>
-            <option value="Kita Sonnenstrahl">Kita Sonnenstrahl</option>
+            <option value="Richthoffenstr">Richthoffenstr</option>
+            <option value="Bonnertalweg">Bonnertalweg</option>
+            <option value="Reiherweg">Reiherweg</option>
         </select>
 
-        <label>Mitarbeiter vor Ort</label>
-        <input type="text" id="mitarbeiter" placeholder="z.B. Max, Leon, Anna">
+        <div class="flex-row">
+            <div>
+                <label>Startzeit</label>
+                <input type="time" id="start-zeit" value="07:00" onchange="berechneStunden()">
+            </div>
+            <div>
+                <label>Endzeit</label>
+                <input type="time" id="end-zeit" value="16:30" onchange="berechneStunden()">
+            </div>
+        </div>
+        <div class="info-text" id="stunden-info">Berechnung: 9.5h Brutto - 1h Pause = 8.5h Netto</div>
 
-        <label>Stunden (Gesamt)</label>
-        <input type="number" id="stunden" value="8.5" step="0.5">
+        <label>Mitarbeiter vor Ort</label>
+        <input type="text" id="mitarbeiter" placeholder="Namen getrennt durch Komma">
 
         <label>Tätigkeitsbericht</label>
         <textarea id="bericht" rows="4" placeholder="Was wurde heute erledigt?"></textarea>
 
-        <div id="gps-display" style="font-size: 11px; color: #666; margin-top: 10px;">📍 GPS: Suche Standort...</div>
+        <div id="gps-display" style="font-size: 11px; color: #666; margin-top: 10px;">📍 GPS: Wird ermittelt...</div>
 
         <button id="send-report-btn">Bericht absenden</button>
-        <button onclick="location.reload()" class="logout-btn">Abmelden</button>
+        <button onclick="location.reload()" style="background:#888; margin-top:10px; font-size:12px;">Abmelden</button>
     </div>
 </div>
 
 <script>
-    // --- KONFIGURATION ---
     const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
 
-    let userCoords = "Wird ermittelt...";
+    let userCoords = "Unbekannt";
+    let nettoStunden = 8.5;
 
-    // Echte GPS Abfrage beim Start
+    // GPS Abfrage
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(p => {
             userCoords = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
@@ -76,57 +83,68 @@
         });
     }
 
-    // LOGIN FUNKTION
+    // AUTOMATISCHE STUNDENBERECHNUNG
+    function berechneStunden() {
+        const start = document.getElementById('start-zeit').value;
+        const ende = document.getElementById('end-zeit').value;
+
+        if (start && ende) {
+            const s = start.split(':');
+            const e = ende.split(':');
+            const startMin = parseInt(s[0]) * 60 + parseInt(s[1]);
+            const endMin = parseInt(e[0]) * 60 + parseInt(e[1]);
+
+            let diffMin = endMin - startMin;
+            let brutto = (diffMin / 60).toFixed(2);
+            
+            // 1 STUNDE PAUSE ABZIEHEN (60 Min)
+            nettoStunden = ((diffMin - 60) / 60).toFixed(2);
+
+            if (nettoStunden < 0) nettoStunden = 0;
+
+            document.getElementById('stunden-info').innerText = 
+                `Berechnung: ${brutto}h Brutto - 1h Pause = ${nettoStunden}h Netto`;
+        }
+    }
+
+    // LOGIN
     async function startLogin() {
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('pass').value;
         const statusBox = document.getElementById('status-box');
 
-        if(!email || !password) return alert("Bitte Daten eingeben!");
-
         statusBox.innerText = "⏳ Prüfe Login...";
-        statusBox.style.background = "#fff3cd";
-
         try {
             const response = await fetch(`${URL}/auth/v1/token?grant_type=password`, {
                 method: 'POST',
                 headers: { 'apikey': KEY, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
-
             const result = await response.json();
-            if (!response.ok) throw new Error(result.error_description || result.error || "Login fehlgeschlagen");
+            if (!response.ok) throw new Error(result.error_description || "Login fehlgeschlagen");
 
-            // Erfolg
             statusBox.innerText = "✅ Login erfolgreich!";
-            statusBox.style.background = "#d4edda";
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('app-content').classList.remove('hidden');
+            berechneStunden(); // Initial berechnen
 
         } catch (e) {
             alert("Fehler: " + e.message);
-            statusBox.innerText = "❌ " + e.message;
-            statusBox.style.background = "#f8d7da";
         }
     }
 
-    // BERICHT SENDEN FUNKTION
+    // BERICHT SENDEN
     async function sendReport() {
         const statusBox = document.getElementById('status-box');
-        const btn = document.getElementById('send-report-btn');
-        
         const payload = {
             projekt_name: document.getElementById('projekt-select').value,
             mitarbeiter_liste: document.getElementById('mitarbeiter').value,
-            arbeitsstunden: parseFloat(document.getElementById('stunden').value),
+            arbeitsstunden: parseFloat(nettoStunden),
             bericht_text: document.getElementById('bericht').value,
             gps_coords: userCoords
         };
 
-        if(!payload.bericht_text) return alert("Bitte Bericht ausfüllen!");
-
-        statusBox.innerText = "⏳ Sende Daten...";
-        btn.disabled = true;
+        statusBox.innerText = "⏳ Sende Bericht...";
 
         try {
             const response = await fetch(`${URL}/rest/v1/tagesberichte`, {
@@ -140,25 +158,17 @@
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.message || "Datenbank-Fehler");
-            }
+            if (!response.ok) throw new Error("Speichern fehlgeschlagen");
 
             statusBox.innerText = "✅ Bericht gespeichert!";
-            statusBox.style.background = "#d4edda";
-            alert("Erfolg! Der Bericht ist in der Datenbank.");
-            document.getElementById('bericht').value = ""; // Feld leeren
+            alert("Erfolg! Netto-Stunden: " + nettoStunden);
+            document.getElementById('bericht').value = ""; 
 
         } catch (e) {
-            alert("Fehler beim Speichern: " + e.message);
-            statusBox.innerText = "❌ Fehler beim Senden";
-        } finally {
-            btn.disabled = false;
+            alert("Fehler: " + e.message);
         }
     }
 
-    // Event-Listener verknüpfen (Sicherer Weg)
     document.getElementById('login-btn').addEventListener('click', startLogin);
     document.getElementById('send-report-btn').addEventListener('click', sendReport);
 </script>
