@@ -2,77 +2,79 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>REF-Bau App Fix</title>
-    <!-- 1. Bibliothek laden -->
-    <script src="https://cdn.jsdelivr.net"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REF-Bau App</title>
+    <!-- Supabase Bibliothek -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 400px; margin: auto; background: #f0f0f0; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #debug { font-size: 12px; padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #eee; }
         .hidden { display: none; }
-        #debug-log { font-size: 11px; color: red; margin-top: 10px; word-break: break-all; }
     </style>
 </head>
 <body>
 
 <div class="card">
+    <div id="debug">Prüfe Verbindung...</div>
     <h2>🏗️ REF-Bau Login</h2>
-    
-    <div id="login-area">
+
+    <div id="login-form">
         <input type="email" id="email" placeholder="E-Mail">
-        <input type="password" id="password" placeholder="Passwort">
-        <button id="btn-login">ANMELDEN</button>
+        <input type="password" id="pass" placeholder="Passwort">
+        <button id="login-btn">Anmelden</button>
     </div>
 
-    <div id="app-area" class="hidden">
-        <h3>✅ Login erfolgreich!</h3>
-        <p>Willkommen im System.</p>
+    <div id="app-content" class="hidden">
+        <h3>✅ Willkommen!</h3>
+        <p>Bericht-System ist bereit.</p>
         <button onclick="location.reload()">Abmelden</button>
     </div>
-
-    <div id="debug-log"></div>
 </div>
 
 <script>
     // --- 1. DATEN HIER EINTRAGEN ---
-    const SB_URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
+    const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
 
-    // --- 2. INITIALISIERUNG (Ganz oben!) ---
-    const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+    const debug = document.getElementById('debug');
+    let client;
+
+    // --- 2. START-CHECK ---
+    try {
+        client = window.supabase.createClient(URL, KEY);
+        debug.innerText = "✅ Verbindung zu Supabase bereit.";
+        debug.style.color = "green";
+    } catch (e) {
+        debug.innerText = "❌ Fehler: Bibliothek nicht geladen!";
+        debug.style.color = "red";
+    }
 
     // --- 3. LOGIN FUNKTION ---
-    async function jetztAnmelden() {
-        const log = document.getElementById('debug-log');
-        const mail = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
+    async function login() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('pass').value;
+        
+        debug.innerText = "⏳ Melde an...";
 
-        log.innerText = "⏳ Verbindung wird aufgebaut...";
+        const { data, error } = await client.auth.signInWithPassword({ email, password });
 
-        try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: mail.trim(),
-                password: pass
-            });
-
-            if (error) {
-                alert("Fehler: " + error.message);
-                log.innerText = "Supabase meldet: " + error.message;
-            } else {
-                alert("Erfolg! Du bist drin.");
-                document.getElementById('login-area').classList.add('hidden');
-                document.getElementById('app-area').classList.remove('hidden');
-                log.innerText = "";
-            }
-        } catch (err) {
-            log.innerText = "Kritischer Fehler: " + err.message;
+        if (error) {
+            alert("Fehler: " + error.message);
+            debug.innerText = "❌ " + error.message;
+        } else {
+            debug.innerText = "✅ Login erfolgreich!";
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('app-content').classList.remove('hidden');
         }
     }
 
-    // --- 4. EVENT LISTENER (Sicherer als onclick im HTML) ---
-    document.getElementById('btn-login').addEventListener('click', jetztAnmelden);
+    // Event-Listener an den Button binden
+    document.getElementById('login-btn').addEventListener('click', login);
 </script>
+
 </body>
 </html>
 
