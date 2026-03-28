@@ -3,79 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REF-Bau App | Final Fix</title>
+    <title>REF-Bau App | Direkt-Connect</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
         .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #27ae60; }
-        h2 { text-align: center; color: #2c3e50; margin-top: 0; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
-        #status-box { font-size: 12px; padding: 10px; margin-bottom: 15px; border-radius: 6px; text-align: center; background: #eee; font-weight: bold; }
+        h2 { text-align: center; color: #2c3e50; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        #status-box { font-size: 12px; padding: 10px; margin-bottom: 15px; border-radius: 6px; text-align: center; background: #d4edda; color: #155724; font-weight: bold; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="status-box">🔍 Initialisiere System...</div>
+    <div id="status-box">🚀 System bereit (Direkt-Modus)</div>
     <h2>🏗️ REF-Bau Login</h2>
 
     <div id="login-form">
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="pass" placeholder="Passwort">
-        <button id="login-btn">JETZT ANMELDEN</button>
+        <button onclick="handleLogin()">ANMELDEN</button>
     </div>
 
     <div id="app-content" class="hidden">
         <h3 style="color: #27ae60; text-align: center;">✅ Login erfolgreich!</h3>
-        <p style="text-align: center;">System bereit für Berichte.</p>
+        <p style="text-align: center;">Datenbank-Verbindung steht.</p>
         <button onclick="location.reload()" style="background:#888;">Abmelden</button>
     </div>
 </div>
 
-<!-- DIESER TEIL LÄDT DIE BIBLIOTHEK MODERN -->
-<script type="module">
-    // Wir laden die Bibliothek als "Module" - das wird seltener blockiert
-    import { createClient } from 'https://cdn.jsdelivr.net';
-
+<script>
     const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
 
-    const statusBox = document.getElementById('status-box');
-    let supabase;
-
-    // --- START ---
-    try {
-        supabase = createClient(URL, KEY);
-        statusBox.innerText = "🚀 System bereit (Verbunden)";
-        statusBox.style.background = "#d4edda";
-        statusBox.style.color = "#155724";
-    } catch (e) {
-        statusBox.innerText = "❌ Fehler: " + e.message;
-        statusBox.style.background = "#f8d7da";
-    }
-
-    // --- LOGIN ---
-    document.getElementById('login-btn').addEventListener('click', async () => {
+    async function handleLogin() {
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('pass').value;
+        const statusBox = document.getElementById('status-box');
 
-        if (!supabase) return alert("System lädt noch oder wird blockiert!");
         statusBox.innerText = "⏳ Prüfe Login...";
+        statusBox.style.background = "#fff3cd";
 
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        try {
+            // Wir senden die Login-Daten direkt an die Supabase API
+            const response = await fetch(`${URL}/auth/v1/token?grant_type=password`, {
+                method: 'POST',
+                headers: {
+                    'apikey': KEY,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
 
-        if (error) {
-            alert("Fehler: " + error.message);
-            statusBox.innerText = "❌ " + error.message;
-        } else {
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error_description || result.error || "Login fehlgeschlagen");
+            }
+
+            // Erfolg!
             statusBox.innerText = "✅ Willkommen!";
+            statusBox.style.background = "#d4edda";
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('app-content').classList.remove('hidden');
+            
+            console.log("Token erhalten:", result.access_token);
+
+        } catch (e) {
+            alert("Fehler: " + e.message);
+            statusBox.innerText = "❌ " + e.message;
+            statusBox.style.background = "#f8d7da";
         }
-    });
+    }
 </script>
 
 </body>
 </html>
+
 
