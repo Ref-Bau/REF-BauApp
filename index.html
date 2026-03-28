@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REF-Bau App | Offline-Ready</title>
-    <!-- Hier ist die Bibliothek nun direkt im Code integriert (gekürzt für Übersicht) -->
-    <script src="https://cdn.jsdelivr.net"></script>
+    <title>REF-Bau App | Final Fix</title>
+    <!-- REPARIERTER LINK ZUR BIBLIOTHEK -->
+    <script src="https://unpkg.com"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
         .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -20,7 +20,7 @@
 <body>
 
 <div class="card">
-    <div id="status-box">Prüfe System...</div>
+    <div id="status-box">System wird geladen...</div>
     <h2>🏗️ REF-Bau Login</h2>
 
     <div id="login-form">
@@ -31,21 +31,22 @@
 
     <div id="app-content" class="hidden">
         <h3 style="color: #27ae60;">✅ System bereit</h3>
-        <p>Login erfolgreich. Du kannst jetzt Berichte senden.</p>
+        <p>Login erfolgreich!</p>
         <button onclick="location.reload()" style="background:#888;">Abmelden</button>
     </div>
 </div>
 
 <script>
-    // --- 1. KONFIGURATION ---
+// --- 1. KONFIGURATION ---
 const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
-const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA'; // Den langen Key hier rein!
+const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
 
 const statusBox = document.getElementById('status-box');
 let supabaseClient = null;
 
-// --- 2. SICHERES LADEN DER BIBLIOTHEK ---
+// --- 2. INITIALISIERUNG ---
 function initializeSupabase() {
+    // Prüfen ob die Bibliothek geladen wurde
     if (window.supabase) {
         try {
             supabaseClient = window.supabase.createClient(URL, KEY);
@@ -53,24 +54,29 @@ function initializeSupabase() {
             statusBox.style.background = "#d4edda";
             statusBox.style.color = "#155724";
         } catch (e) {
-            statusBox.innerText = "❌ Konfigurationsfehler: " + e.message;
+            statusBox.innerText = "❌ Fehler: " + e.message;
+            statusBox.style.background = "#f8d7da";
         }
     } else {
-        statusBox.innerText = "⚠️ Bibliothek fehlt! Prüfe Internet/Adblock";
+        statusBox.innerText = "⚠️ Bibliothek fehlt! Bitte Seite neu laden oder Internet prüfen.";
         statusBox.style.background = "#f8d7da";
     }
 }
 
-// --- 3. LOGIN FUNKTION (MIT SCHUTZ) ---
+// --- 3. LOGIN FUNKTION ---
 async function handleLogin() {
-    // PRÜFUNG: Ist der Client überhaupt da?
     if (!supabaseClient) {
-        alert("System nicht bereit! Die Supabase-Bibliothek konnte nicht geladen werden.");
+        alert("System noch nicht bereit. Bitte warten...");
         return;
     }
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('pass').value;
+
+    if(!email || !password) {
+        alert("Bitte E-Mail und Passwort eingeben!");
+        return;
+    }
 
     statusBox.innerText = "⏳ Verbindung wird aufgebaut...";
     
@@ -83,8 +89,10 @@ async function handleLogin() {
         if (error) {
             alert("Login fehlgeschlagen: " + error.message);
             statusBox.innerText = "❌ " + error.message;
+            statusBox.style.background = "#f8d7da";
         } else {
             statusBox.innerText = "✅ Willkommen!";
+            statusBox.style.background = "#d4edda";
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('app-content').classList.remove('hidden');
         }
@@ -93,14 +101,14 @@ async function handleLogin() {
     }
 }
 
-// Startet die Prüfung, sobald die Seite lädt
-window.onload = initializeSupabase;
+// Event-Listener aktivieren
 document.getElementById('login-btn').addEventListener('click', handleLogin);
 
+// Starten sobald das Fenster geladen ist
+window.onload = initializeSupabase;
 </script>
 
 </body>
 </html>
-
 
 
