@@ -3,101 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REF-BAU App</title>
-    
-    <!-- VERSUCH 1: ERSATZ-SERVER (UNPKG) -->
-    <script src="https://unpkg.com"></script>
-    
-    <!-- VERSUCH 2: FALLBACK (JSDELIVR) -->
+    <title>REF-Bau App | Tagesbericht</title>
+    <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net"></script>
-
-    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f7f6; padding: 20px; max-width: 500px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; text-align: center; }
+        label { display: block; margin-top: 15; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 5px; margin-top: 20px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #219150; }
+        #status { margin-top: 15px; text-align: center; font-weight: bold; }
+    </style>
 </head>
+<body>
 
-<body class="bg-gray-100 p-4">
+<div class="card">
+    <h2>🏗️ REF-Bau Tagesbericht</h2>
+    
+    <label>Projektname</label>
+    <select id="projekt">
+        <option>Lade Projekte...</option>
+    </select>
 
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-900 text-center">
-        <div class="text-3xl font-black text-blue-900 italic mb-6 border-b pb-4">REF-BAU</div>
+    <label>Arbeitsstunden</label>
+    <input type="number" id="stunden" value="8.5" step="0.5">
 
-        <div id="statusBox" class="mb-4 p-3 rounded-lg bg-yellow-100 text-yellow-800 font-bold text-[10px] uppercase tracking-widest">
-            System wird initialisiert...
-        </div>
+    <label>Tätigkeiten / Vorkommnisse</label>
+    <textarea id="bericht" rows="4" placeholder="Was wurde heute gemacht?"></textarea>
 
-        <div id="loginSection" class="hidden space-y-4">
-            <input type="email" id="email" placeholder="E-Mail" class="w-full border p-3 rounded shadow-sm">
-            <input type="password" id="password" placeholder="Passwort" class="w-full border p-3 rounded shadow-sm">
-            <button onclick="handleLogin()" id="btn" class="w-full bg-blue-900 text-white py-3 rounded font-bold uppercase shadow-lg">Anmelden</button>
-        </div>
+    <label>Bilder hochladen</label>
+    <input type="file" id="bilder" multiple accept="image/*">
 
-        <div id="appSection" class="hidden space-y-4">
-            <div class="bg-green-100 text-green-800 p-2 rounded text-xs font-bold uppercase">System Bereit ✅</div>
-            <input type="text" id="project" placeholder="Projekt Name" class="w-full border p-3 rounded">
-            <button onclick="senden()" id="sendBtn" class="w-full bg-green-600 text-white py-4 rounded font-bold uppercase shadow-xl">Bericht Senden</button>
-        </div>
-    </div>
+    <button onclick="senden()">Bericht Absenden</button>
+    <div id="status"></div>
+</div>
 
-    <script>
-        // === DEINE DATEN (HIER EINTRAGEN!) ===
-        const URL = 'https://hvvuzldppehewkotppdz.supabase.co'; 
-        const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
+<script>
+    // --- KONFIGURATION ---
+    const SUPABASE_URL = 'https://hvvuzldppehewkotppdz.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // 1. Projekte beim Start laden
+    async function loadProjekte() {
+        const { data, error } = await supabase.table('projekte').select('name');
+        const select = document.getElementById('projekt');
+        select.innerHTML = ""; // Clear
+        if (data) {
+            data.forEach(p => {
+                let opt = document.createElement('option');
+                opt.value = p.name;
+                opt.innerHTML = p.name;
+                select.appendChild(opt);
+            });
+        }
+    }
+    loadProjekte();
+
+    // 2. Bericht absenden
+    async function senden() {
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerHTML = "⌛ Sende Daten...";
         
-        let sb;
+        const projekt = document.getElementById('projekt').value;
+        const stunden = document.getElementById('stunden').value;
+        const bericht = document.getElementById('bericht').value;
+        const bilder = document.getElementById('bilder').files;
 
-        // NOTFALL-LADER: Wir laden die Bibliothek manuell ins System
-        function loadLib() {
-            const script = document.createElement('script');
-            script.src = "https://unpkg.com";
-            script.async = true;
-            script.onload = () => {
-                console.log("Bibliothek geladen!");
-                startSystem();
-            };
-            script.onerror = () => {
-                document.getElementById('statusBox').innerText = "NETZWERK-BLOCKADE! (WLAN AUSSCHALTEN)";
-                document.getElementById('statusBox').className = "mb-4 p-3 rounded-lg bg-red-100 text-red-800 font-bold text-[10px] uppercase";
-            };
-            document.head.appendChild(script);
+        // Daten in Tabelle 'tagesberichte' speichern
+        const { data, error } = await supabase
+            .from('tagesberichte')
+            .insert([{ 
+                projekt_name: projekt, 
+                arbeitsstunden: stunden, 
+                bericht_text: bericht,
+                erstellt_am: new Date()
+            }])
+            .select();
+
+        if (error) {
+            statusDiv.innerHTML = "❌ Fehler: " + error.message;
+            statusDiv.style.color = "red";
+        } else {
+            statusDiv.innerHTML = "✅ Bericht gespeichert!";
+            statusDiv.style.color = "green";
+            // Hier würde jetzt die Logik für den Bilder-Upload folgen (Supabase Storage)
         }
+    }
+</script>
 
-        function startSystem() {
-            try {
-                sb = supabase.createClient(URL, KEY);
-                document.getElementById('statusBox').innerText = "Bereit für Login ✅";
-                document.getElementById('statusBox').className = "mb-4 p-3 rounded-lg bg-green-100 text-green-800 font-bold text-[10px] uppercase";
-                document.getElementById('loginSection').classList.remove('hidden');
-                checkSession();
-            } catch (e) {
-                document.getElementById('statusBox').innerText = "KONFIGURATIONS-FEHLER!";
-            }
-        }
-
-        async function handleLogin() {
-            const e = document.getElementById('email').value;
-            const p = document.getElementById('password').value;
-            const { error } = await sb.auth.signInWithPassword({ email: e, password: p });
-            if (error) alert("Fehler: " + error.message);
-            else checkSession();
-        }
-
-        async function checkSession() {
-            const { data: { session } } = await sb.auth.getSession();
-            if (session) {
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('statusBox').classList.add('hidden');
-                document.getElementById('appSection').classList.remove('hidden');
-            }
-        }
-
-        async function senden() {
-            const p = document.getElementById('project').value;
-            const { error } = await sb.from('berichte').insert([{ projekt: p }]);
-            if (error) alert(error.message);
-            else { alert("Gesendet!"); location.reload(); }
-        }
-
-        // Startvorgang
-        loadLib();
-    </script>
 </body>
 </html>
-
