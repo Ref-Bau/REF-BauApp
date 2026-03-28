@@ -3,70 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REF-Bau App | Fotos & Zeit</title>
+    <title>REF-Bau | Kolonnen-Bericht</title>
     <style>
-        :root { --green: #27ae60; --dark: #2c3e50; --bg: #f0f2f5; }
+        :root { --green: #27ae60; --dark: #2c3e50; --bg: #f4f7f6; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 10px; }
-        .card { background: white; width: 100%; max-width: 450px; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-top: 5px solid var(--green); }
-        h2 { text-align: center; color: var(--dark); margin: 0 0 15px 0; }
-        label { display: block; margin-top: 12px; font-weight: bold; color: #555; font-size: 14px; }
+        .card { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-top: 6px solid var(--green); }
+        h2 { text-align: center; color: var(--dark); margin-bottom: 20px; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #444; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         .flex-row { display: flex; gap: 10px; }
         .flex-row div { flex: 1; }
-        button { width: 100%; padding: 15px; background: var(--green); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 15px; }
-        #status-box { font-size: 13px; padding: 12px; margin-bottom: 15px; border-radius: 8px; text-align: center; background: #e8f5e9; color: #2e7d32; font-weight: bold; }
-        .hidden { display: none; }
-        .info-text { font-size: 12px; color: #666; margin-top: 5px; font-style: italic; }
-        .photo-preview { display: flex; gap: 5px; margin-top: 10px; overflow-x: auto; }
-        .photo-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; border: 1px solid #ddd; }
+        .mitarbeiter-liste { border: 1px solid #ccc; border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto; margin-top: 5px; }
+        .mitarbeiter-item { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid #eee; }
+        .mitarbeiter-item input { width: auto; margin: 0; }
+        button { width: 100%; padding: 15px; background: var(--green); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 20px; }
+        #status-box { font-size: 13px; padding: 12px; margin-bottom: 15px; border-radius: 8px; text-align: center; background: #eee; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="status-box">🚀 REF-Bau bereit</div>
-    <h2>🏗️ Tagesbericht</h2>
+    <div id="status-box">🔍 Initialisiere System...</div>
+    <h2>🏗️ Kolonnen-Bericht</h2>
 
     <!-- LOGIN -->
     <div id="login-form">
-        <label>E-Mail</label>
-        <input type="email" id="email" placeholder="name@ref-bau.de">
-        <label>Passwort</label>
-        <input type="password" id="pass" placeholder="••••••••">
+        <input type="email" id="email" placeholder="E-Mail Vorarbeiter">
+        <input type="password" id="pass" placeholder="Passwort">
         <button id="login-btn">ANMELDEN</button>
     </div>
 
     <!-- HAUPT FORMULAR -->
     <div id="app-content" class="hidden">
-        <label>Projekt</label>
-        <select id="projekt-select">
-            <option value="Neubau Berlin-Mitte">Neubau Berlin-Mitte</option>
-            <option value="Sanierung Schule West">Sanierung Schule West</option>
-            <option value="Kita Sonnenstrahl">Kita Sonnenstrahl</option>
-        </select>
+        <label>Baustelle / Projekt</label>
+        <select id="projekt-select"></select>
+
+        <label>Mitarbeiter auswählen (Anwesend)</label>
+        <div id="mitarbeiter-auswahl" class="mitarbeiter-liste">Lade Team...</div>
 
         <div class="flex-row">
             <div>
-                <label>Start</label>
+                <label>Startzeit</label>
                 <input type="time" id="start-zeit" value="07:00" onchange="berechneStunden()">
             </div>
             <div>
-                <label>Ende</label>
+                <label>Endzeit</label>
                 <input type="time" id="end-zeit" value="16:30" onchange="berechneStunden()">
             </div>
         </div>
-        <div class="info-text" id="stunden-info">Netto: 8.50h (inkl. 1h Pause)</div>
+        <div id="stunden-info" style="font-size: 12px; color: #27ae60; margin-top: 5px; font-weight: bold;">Netto: 8.5h (inkl. 1h Pause)</div>
 
-        <label>Fotos aufnehmen</label>
-        <input type="file" id="foto-input" accept="image/*" multiple style="padding: 5px;">
-        <div id="preview" class="photo-preview"></div>
+        <label>Tätigkeitsbericht (für alle)</label>
+        <textarea id="bericht" rows="3" placeholder="Was hat die Kolonne heute gemacht?"></textarea>
 
-        <label>Bericht</label>
-        <textarea id="bericht" rows="3" placeholder="Was wurde heute gemacht?"></textarea>
+        <label>Fotos (Bewehrung, Mängel, etc.)</label>
+        <input type="file" id="foto-input" accept="image/*" multiple>
 
-        <div id="gps-display" style="font-size: 11px; color: #888; margin-top: 10px;">📍 GPS: Suche Standort...</div>
-
-        <button id="send-report-btn">BERICHT & FOTOS SENDEN</button>
+        <button id="send-report-btn">BERICHT FÜR ALLE SPEICHERN</button>
         <button onclick="location.reload()" style="background:#888; font-size:12px; margin-top:10px;">Abmelden</button>
     </div>
 </div>
@@ -75,24 +68,41 @@
     const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
 
-    let userCoords = "Unbekannt";
     let nettoStunden = 8.5;
+    let userCoords = "Unbekannt";
 
     // GPS
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(p => {
             userCoords = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
-            document.getElementById('gps-display').innerText = "📍 GPS: Aktiv (" + userCoords + ")";
         });
     }
 
-    // STUNDEN
+    // STUNDENBERECHNUNG
     function berechneStunden() {
         const s = document.getElementById('start-zeit').value.split(':');
         const e = document.getElementById('end-zeit').value.split(':');
         const diff = (parseInt(e[0])*60 + parseInt(e[1])) - (parseInt(s[0])*60 + parseInt(s[1]));
         nettoStunden = ((diff - 60) / 60).toFixed(2);
-        document.getElementById('stunden-info').innerText = `Netto: ${nettoStunden}h (1h Pause abgezogen)`;
+        document.getElementById('stunden-info').innerText = `Netto: ${nettoStunden < 0 ? 0 : nettoStunden}h (1h Pause abgezogen)`;
+    }
+
+    // DATEN LADEN (PROJEKTE & MITARBEITER)
+    async function ladeStammdaten() {
+        // Projekte
+        const resP = await fetch(`${URL}/rest/v1/projekte?select=name`, { headers: { 'apikey': KEY, 'Authorization': `Bearer ${KEY}` } });
+        const projekte = await resP.json();
+        document.getElementById('projekt-select').innerHTML = projekte.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+
+        // Mitarbeiter
+        const resM = await fetch(`${URL}/rest/v1/mitarbeiter?select=vorname,nachname`, { headers: { 'apikey': KEY, 'Authorization': `Bearer ${KEY}` } });
+        const team = await resM.json();
+        document.getElementById('mitarbeiter-auswahl').innerHTML = team.map(m => `
+            <div class="mitarbeiter-item">
+                <input type="checkbox" class="m-check" value="${m.vorname} ${m.nachname}">
+                <span>${m.vorname} ${m.nachname}</span>
+            </div>
+        `).join('');
     }
 
     // LOGIN
@@ -106,57 +116,47 @@
         if (response.ok) {
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('app-content').classList.remove('hidden');
-            berechneStunden();
+            document.getElementById('status-box').innerText = "🚀 System bereit";
+            ladeStammdaten();
         } else { alert("Login fehlgeschlagen!"); }
     }
 
-    // BERICHT & FOTOS SENDEN
+    // BERICHT SPEICHERN
     async function sendReport() {
-        const statusBox = document.getElementById('status-box');
-        const fotoFiles = document.getElementById('foto-input').files;
-        const projekt = document.getElementById('projekt-select').value;
-        const datum = new Date().toISOString().split('T')[0];
+        const selectedMitarbeiter = Array.from(document.querySelectorAll('.m-check:checked')).map(cb => cb.value);
+        if (selectedMitarbeiter.length === 0) return alert("Bitte mindestens einen Mitarbeiter auswählen!");
 
-        statusBox.innerText = "⏳ Verarbeite Bericht...";
+        const statusBox = document.getElementById('status-box');
+        statusBox.innerText = `⏳ Speichere Berichte für ${selectedMitarbeiter.length} Personen...`;
+
+        const projekt = document.getElementById('projekt-select').value;
+        const berichtText = document.getElementById('bericht').value;
 
         try {
-            // 1. Fotos hochladen
-            for (let file of fotoFiles) {
-                const path = `bau-fotos/${projekt}/${datum}/${Date.now()}_${file.name}`;
-                await fetch(`${URL}/storage/v1/object/bau-fotos/${path}`, {
+            for (let name of selectedMitarbeiter) {
+                const payload = {
+                    projekt_name: projekt,
+                    mitarbeiter_name: name,
+                    arbeitsstunden: parseFloat(nettoStunden),
+                    bericht_text: berichtText,
+                    gps_coords: userCoords
+                };
+                await fetch(`${URL}/rest/v1/tagesberichte`, {
                     method: 'POST',
-                    headers: { 'apikey': KEY, 'Authorization': `Bearer ${KEY}` },
-                    body: file
+                    headers: { 'apikey': KEY, 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
             }
-
-            // 2. Textbericht speichern
-            const payload = {
-                projekt_name: projekt,
-                arbeitsstunden: parseFloat(nettoStunden),
-                bericht_text: document.getElementById('bericht').value,
-                gps_coords: userCoords
-            };
-
-            const response = await fetch(`${URL}/rest/v1/tagesberichte`, {
-                method: 'POST',
-                headers: { 'apikey': KEY, 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                statusBox.innerText = "✅ Alles gespeichert!";
-                alert("Bericht und Fotos wurden erfolgreich übertragen.");
-                location.reload();
-            }
+            alert("Erfolg! Berichte für die gesamte Kolonne wurden gespeichert.");
+            location.reload();
         } catch (e) { alert("Fehler: " + e.message); }
     }
 
     document.getElementById('login-btn').addEventListener('click', startLogin);
     document.getElementById('send-report-btn').addEventListener('click', sendReport);
 </script>
-
 </body>
 </html>
+
 
 
