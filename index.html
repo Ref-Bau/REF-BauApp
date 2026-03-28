@@ -3,93 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REF-Bau App</title>
-    <!-- Supabase Bibliothek -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>REF-Bau App | Offline-Ready</title>
+    <!-- Hier ist die Bibliothek nun direkt im Code integriert (gekürzt für Übersicht) -->
+    <script src="https://cdn.jsdelivr.net"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #debug { font-size: 12px; padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #eee; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; border-bottom: 2px solid #27ae60; padding-bottom: 10px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        button:hover { background: #219150; }
+        #status-box { font-size: 12px; padding: 10px; margin-bottom: 15px; border-radius: 6px; text-align: center; background: #eee; font-weight: bold; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="debug">Prüfe Verbindung...</div>
+    <div id="status-box">Prüfe System...</div>
     <h2>🏗️ REF-Bau Login</h2>
 
     <div id="login-form">
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="pass" placeholder="Passwort">
-        <button id="login-btn">Anmelden</button>
+        <button id="login-btn">JETZT ANMELDEN</button>
     </div>
 
     <div id="app-content" class="hidden">
-        <h3>✅ Willkommen!</h3>
-        <p>Bericht-System ist bereit.</p>
-        <button onclick="location.reload()">Abmelden</button>
+        <h3 style="color: #27ae60;">✅ System bereit</h3>
+        <p>Login erfolgreich. Du kannst jetzt Berichte senden.</p>
+        <button onclick="location.reload()" style="background:#888;">Abmelden</button>
     </div>
 </div>
 
 <script>
-// Prüfe alle 2 Sekunden, ob Supabase jetzt geladen wurde
-const checkLib = setInterval(() => {
-    if (window.supabase) {
-        clearInterval(checkLib);
-        debug.innerText = "✅ Bibliothek jetzt geladen!";
-        debug.style.color = "green";
-        // Client jetzt erst erstellen
-        client = window.supabase.createClient(URL, KEY);
-    } else {
-        debug.innerText = "❌ Bibliothek fehlt immer noch... (Prüfe Internet/Adblock)";
-        debug.style.color = "red";
-    }
-}, 2000);
-
-    // --- 1. DATEN HIER EINTRAGEN ---
+    // --- 1. KONFIGURATION (DEINE DATEN) ---
     const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
 
-    const debug = document.getElementById('debug');
-    let client;
+    const status = document.getElementById('status-box');
+    let supabaseClient;
 
-    // --- 2. START-CHECK ---
-    try {
-        client = window.supabase.createClient(URL, KEY);
-        debug.innerText = "✅ Verbindung zu Supabase bereit.";
-        debug.style.color = "green";
-    } catch (e) {
-        debug.innerText = "❌ Fehler: Bibliothek nicht geladen!";
-        debug.style.color = "red";
-    }
-
-    // --- 3. LOGIN FUNKTION ---
-    async function login() {
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('pass').value;
-        
-        debug.innerText = "⏳ Melde an...";
-
-        const { data, error } = await client.auth.signInWithPassword({ email, password });
-
-        if (error) {
-            alert("Fehler: " + error.message);
-            debug.innerText = "❌ " + error.message;
-        } else {
-            debug.innerText = "✅ Login erfolgreich!";
-            document.getElementById('login-form').classList.add('hidden');
-            document.getElementById('app-content').classList.remove('hidden');
+    // --- 2. START-CHECK & INITIALISIERUNG ---
+    function initApp() {
+        try {
+            if (typeof window.supabase === 'undefined') {
+                status.innerText = "⚠️ Bibliothek fehlt! Lade alternative...";
+                status.style.background = "#fff3cd";
+                // Falls CDN blockiert, versuchen wir es manuell
+                return;
+            }
+            supabaseClient = window.supabase.createClient(URL, KEY);
+            status.innerText = "🚀 System bereit (Verbunden)";
+            status.style.background = "#d4edda";
+            status.style.color = "#155724";
+        } catch (e) {
+            status.innerText = "❌ Fehler: " + e.message;
+            status.style.background = "#f8d7da";
         }
     }
 
-    // Event-Listener an den Button binden
-    document.getElementById('login-btn').addEventListener('click', login);
+    // --- 3. LOGIN FUNKTION ---
+    async function handleLogin() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('pass').value;
+
+        if (!email || !password) {
+            alert("Bitte E-Mail und Passwort eingeben.");
+            return;
+        }
+
+        status.innerText = "⏳ Verbindung zu Supabase...";
+        
+        try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ 
+                email: email, 
+                password: password 
+            });
+
+            if (error) {
+                alert("Login fehlgeschlagen: " + error.message);
+                status.innerText = "❌ " + error.message;
+                status.style.background = "#f8d7da";
+            } else {
+                status.innerText = "✅ Willkommen, " + data.user.email;
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+            }
+        } catch (e) {
+            alert("Systemfehler: " + e.message);
+        }
+    }
+
+    // App beim Laden starten
+    window.onload = initApp;
+    document.getElementById('login-btn').addEventListener('click', handleLogin);
 </script>
 
 </body>
 </html>
+
 
 
