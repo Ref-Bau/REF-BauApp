@@ -27,10 +27,26 @@
     </div>
 
     <div id="app-content" class="hidden">
-        <h3 style="color: #27ae60; text-align: center;">✅ Login erfolgreich!</h3>
-        <p style="text-align: center;">Datenbank-Verbindung steht.</p>
-        <button onclick="location.reload()" style="background:#888;">Abmelden</button>
-    </div>
+    <h3 style="color: #27ae60; text-align: center;">✅ Eingeloggt</h3>
+    
+    <label>Projekt wählen</label>
+    <select id="projekt-select">
+        <option>Standardprojekt</option>
+    </select>
+
+    <label>Mitarbeiter vor Ort</label>
+    <input type="text" id="mitarbeiter" placeholder="z.B. Max, Leon, Anna">
+
+    <label>Arbeitsstunden (Gesamt)</label>
+    <input type="number" id="stunden" value="8.5" step="0.5">
+
+    <label>Tätigkeitsbericht</label>
+    <textarea id="bericht" rows="4" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc;" placeholder="Was wurde heute erledigt?"></textarea>
+
+    <button onclick="sendReport()" id="send-btn">Bericht absenden</button>
+    <button onclick="location.reload()" style="background:#888; margin-top:10px; padding:8px; font-size:12px;">Abmelden</button>
+</div>
+
 </div>
 
 <script>
@@ -76,6 +92,50 @@
             statusBox.style.background = "#f8d7da";
         }
     }
+async function sendReport() {
+    const statusBox = document.getElementById('status-box');
+    const btn = document.getElementById('send-btn');
+    
+    // Daten sammeln
+    const payload = {
+        projekt_name: document.getElementById('projekt-select').value,
+        mitarbeiter_liste: document.getElementById('mitarbeiter').value,
+        arbeitsstunden: document.getElementById('stunden').value,
+        bericht_text: document.getElementById('bericht').value,
+        gps_coords: "52.52, 13.40" // Hier können wir später echtes GPS einbauen
+    };
+
+    statusBox.innerText = "⏳ Sende Bericht...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`${URL}/rest/v1/tagesberichte`, {
+            method: 'POST',
+            headers: {
+                'apikey': KEY,
+                'Authorization': `Bearer ${KEY}`, // Hier nutzen wir den Key als Auth-Token
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("Fehler beim Speichern");
+
+        statusBox.innerText = "✅ Bericht erfolgreich gesendet!";
+        statusBox.style.background = "#d4edda";
+        alert("Bericht wurde gespeichert!");
+        
+        // Formular leeren
+        document.getElementById('bericht').value = "";
+    } catch (e) {
+        alert("Fehler: " + e.message);
+        statusBox.innerText = "❌ Fehler: " + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 </script>
 
 </body>
