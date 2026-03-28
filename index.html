@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>REF-Bau App Fix</title>
+    <!-- 1. Bibliothek laden -->
     <script src="https://cdn.jsdelivr.net"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; max-width: 400px; margin: auto; background: #f0f0f0; }
@@ -10,6 +11,7 @@
         input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
         button { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
         .hidden { display: none; }
+        #debug-log { font-size: 11px; color: red; margin-top: 10px; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -17,39 +19,36 @@
 <div class="card">
     <h2>🏗️ REF-Bau Login</h2>
     
-    <!-- Test Button -->
-    <button onclick="alert('HTML Verbindung OK!')" style="background: #3498db;">1. Klick-Test (Muss Pop-up zeigen)</button>
-
     <div id="login-area">
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="password" placeholder="Passwort">
-        <button onclick="jetztAnmelden()">2. ANMELDEN</button>
+        <button id="btn-login">ANMELDEN</button>
     </div>
 
     <div id="app-area" class="hidden">
         <h3>✅ Login erfolgreich!</h3>
-        <p>Du bist jetzt im Hauptmenü.</p>
+        <p>Willkommen im System.</p>
         <button onclick="location.reload()">Abmelden</button>
     </div>
 
-    <div id="debug-log" style="font-size: 10px; color: red; margin-top: 20px;"></div>
+    <div id="debug-log"></div>
 </div>
 
 <script>
-    // --- 1. DATEN EINTRAGEN ---
-    const URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; // https://xyz.supabase.co
-    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
+    // --- 1. DATEN HIER EINTRAGEN ---
+    const SB_URL = 'https://oqrkfeivpgqzgecbuzha.supabase.co'; 
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcmtmZWl2cGdxemdlY2J1emhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODM1ODEsImV4cCI6MjA5MDI1OTU4MX0.Cue9gAHGEvnJTdF0ZLtYp0wGkCOnnxDheHBjmDhc3nA';
 
-    // Client initialisieren
-    const supabaseClient = supabase.createClient(URL, KEY);
+    // --- 2. INITIALISIERUNG (Ganz oben!) ---
+    const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
 
+    // --- 3. LOGIN FUNKTION ---
     async function jetztAnmelden() {
         const log = document.getElementById('debug-log');
         const mail = document.getElementById('email').value;
         const pass = document.getElementById('password').value;
 
-        console.log("Versuche Login für:", mail);
-        log.innerText = "Sende Daten an Supabase...";
+        log.innerText = "⏳ Verbindung wird aufgebaut...";
 
         try {
             const { data, error } = await supabaseClient.auth.signInWithPassword({
@@ -58,20 +57,23 @@
             });
 
             if (error) {
-                alert("Supabase sagt: " + error.message);
-                log.innerText = "Fehler: " + error.message;
+                alert("Fehler: " + error.message);
+                log.innerText = "Supabase meldet: " + error.message;
             } else {
-                alert("Erfolg! Willkommen.");
+                alert("Erfolg! Du bist drin.");
                 document.getElementById('login-area').classList.add('hidden');
                 document.getElementById('app-area').classList.remove('hidden');
                 log.innerText = "";
             }
         } catch (err) {
-            alert("Script Fehler: " + err.message);
-            log.innerText = "Script Fehler: " + err.message;
+            log.innerText = "Kritischer Fehler: " + err.message;
         }
     }
+
+    // --- 4. EVENT LISTENER (Sicherer als onclick im HTML) ---
+    document.getElementById('btn-login').addEventListener('click', jetztAnmelden);
 </script>
 </body>
 </html>
+
 
