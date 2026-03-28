@@ -94,37 +94,52 @@
     }
 async function sendReport() {
     const statusBox = document.getElementById('status-box');
-    const btn = document.getElementById('send-btn');
     
-    // Daten sammeln
+    // Daten aus den Feldern holen
     const payload = {
         projekt_name: document.getElementById('projekt-select').value,
-        mitarbeiter_liste: document.getElementById('mitarbeiter').value,
-        arbeitsstunden: document.getElementById('stunden').value,
+        mitarbeiter_liste: document.getElementById('mitarbeiter').value || "Nicht angegeben",
+        arbeitsstunden: parseFloat(document.getElementById('stunden').value) || 0,
         bericht_text: document.getElementById('bericht').value,
-        gps_coords: "52.52, 13.40" // Hier können wir später echtes GPS einbauen
+        gps_coords: "Abgefragt" 
     };
 
+    if (!payload.bericht_text) {
+        alert("Bitte einen Berichtstext eingeben!");
+        return;
+    }
+
     statusBox.innerText = "⏳ Sende Bericht...";
-    btn.disabled = true;
 
     try {
         const response = await fetch(`${URL}/rest/v1/tagesberichte`, {
             method: 'POST',
             headers: {
                 'apikey': KEY,
-                'Authorization': `Bearer ${KEY}`, // Hier nutzen wir den Key als Auth-Token
+                'Authorization': `Bearer ${KEY}`, // Der Anon-Key dient hier als Autorisierung
                 'Content-Type': 'application/json',
-                'Prefer': 'return=representation'
+                'Prefer': 'return=minimal' // Wichtig für die REST-API
             },
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error("Fehler beim Speichern");
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Datenbank-Fehler");
+        }
 
         statusBox.innerText = "✅ Bericht erfolgreich gesendet!";
         statusBox.style.background = "#d4edda";
-        alert("Bericht wurde gespeichert!");
+        alert("Bericht gespeichert!");
+        document.getElementById('bericht').value = ""; // Feld leeren
+        
+    } catch (e) {
+        console.error("Speicherfehler:", e);
+        alert("Fehler beim Speichern: " + e.message);
+        statusBox.innerText = "❌ Fehler: " + e.message;
+        statusBox.style.background = "#f8d7da";
+    }
+}
         
         // Formular leeren
         document.getElementById('bericht').value = "";
