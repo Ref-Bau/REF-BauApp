@@ -41,57 +41,46 @@
 </div>
 
 <script>
-    // --- KONFIGURATION ---
-    const SUPABASE_URL = 'https://hvvuzldppehewkotppdz.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // --- KONFIGURATION ---
+const SUPABASE_URL = 'https://hvvuzldppehewkotppdz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2dnV6bGRwcGVoZXdrb3RwcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MDgwOTYsImV4cCI6MjA5MDE4NDA5Nn0.KJXLoRLvPd7mRoQu9lTRhuxdwAwUhXov9kbwGkVhV_M';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 1. Projekte beim Start laden
-    async function loadProjekte() {
-        const { data, error } = await supabase.table('projekte').select('name');
-        const select = document.getElementById('projekt');
-        select.innerHTML = ""; // Clear
-        if (data) {
-            data.forEach(p => {
-                let opt = document.createElement('option');
-                opt.value = p.name;
-                opt.innerHTML = p.name;
-                select.appendChild(opt);
-            });
-        }
+// 1. Projekte live aus Supabase laden (für das Dropdown)
+async function loadProjekte() {
+    const { data, error } = await supabase.from('projekte').select('name').eq('aktiv', true);
+    const select = document.getElementById('projekt');
+    if (data) {
+        select.innerHTML = data.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
     }
-    loadProjekte();
+}
+loadProjekte();
 
-    // 2. Bericht absenden
-    async function senden() {
-        const statusDiv = document.getElementById('status');
-        statusDiv.innerHTML = "⌛ Sende Daten...";
-        
-        const projekt = document.getElementById('projekt').value;
-        const stunden = document.getElementById('stunden').value;
-        const bericht = document.getElementById('bericht').value;
-        const bilder = document.getElementById('bilder').files;
+// 2. Bericht absenden
+async function senden() {
+    const statusDiv = document.getElementById('status');
+    statusDiv.innerHTML = "⌛ Speichere Bericht...";
 
-        // Daten in Tabelle 'tagesberichte' speichern
-        const { data, error } = await supabase
-            .from('tagesberichte')
-            .insert([{ 
-                projekt_name: projekt, 
-                arbeitsstunden: stunden, 
-                bericht_text: bericht,
-                erstellt_am: new Date()
-            }])
-            .select();
+    const berichtDaten = {
+        projekt_name: document.getElementById('projekt').value,
+        arbeitsstunden: parseFloat(document.getElementById('stunden').value),
+        bericht_text: document.getElementById('bericht').value,
+        mitarbeiter_liste: "Max Mustermann", // Hier könntest du später ein Multi-Select einbauen
+        gps_coords: "52.52, 13.40" // Hier kommt später die echte GPS-Abfrage rein
+    };
 
-        if (error) {
-            statusDiv.innerHTML = "❌ Fehler: " + error.message;
-            statusDiv.style.color = "red";
-        } else {
-            statusDiv.innerHTML = "✅ Bericht gespeichert!";
-            statusDiv.style.color = "green";
-            // Hier würde jetzt die Logik für den Bilder-Upload folgen (Supabase Storage)
-        }
+    const { data, error } = await supabase.from('tagesberichte').insert([berichtDaten]).select();
+
+    if (error) {
+        statusDiv.innerHTML = "❌ Fehler: " + error.message;
+        statusDiv.style.color = "red";
+    } else {
+        statusDiv.innerHTML = "✅ Bericht in Supabase gespeichert!";
+        statusDiv.style.color = "green";
+        // HIER folgt als nächstes der Bilder-Upload zu OneDrive/Storage
     }
+}
+
 </script>
 
 </body>
